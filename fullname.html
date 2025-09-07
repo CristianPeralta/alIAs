@@ -266,40 +266,60 @@
                     newDetailsRow.appendChild(detailsCell);
                     row.parentNode.insertBefore(newDetailsRow, row.nextSibling);
                 } else if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Mostrar los datos recibidos
-                    let html = '<div class="space-y-4 p-4 bg-gray-50 rounded-lg">';
-                    
-                    if (data) {
-                        // Mostrar los campos del objeto data
-                        const fields = [
-                            { key: 'tipoDocumento', label: 'Tipo de Documento' },
-                            { key: 'numeroDocumento', label: 'Número de Documento' },
-                            { key: 'apellidoPaterno', label: 'Apellido Paterno' },
-                            { key: 'apellidoMaterno', label: 'Apellido Materno' },
-                            { key: 'nombres', label: 'Nombres' },
-                            { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
-                            { key: 'ubicacionEESS', label: 'Ubicación EESS' }
-                        ];
-                        
-                        fields.forEach(field => {
-                            if (data[field.key] !== undefined && data[field.key] !== null) {
-                                html += `
-                                <div class="flex flex-wrap py-2 border-b border-gray-200 last:border-0 last:pb-0 last:mb-0">
-                                    <div class="w-1/3 font-medium text-gray-700">${field.label}:</div>
-                                    <div class="w-2/3 text-gray-900">${data[field.key] || 'No especificado'}</div>
-                                </div>`;
-                            }
-                        });
-                    } else {
-                        html += '<p class="text-gray-500">No se recibieron datos válidos.</p>';
-                    }
-                    
-                    html += '</div>';
-                    detailsCell.innerHTML = html;
-                    newDetailsRow.appendChild(detailsCell);
-                    row.parentNode.insertBefore(newDetailsRow, row.nextSibling);
+                  const data = await response.json();
+
+                  // Mostrar los datos recibidos en formato de tabla
+                  let html = `
+                  <div class="overflow-x-auto">
+                      <table class="min-w-full bg-white rounded-lg overflow-hidden">
+                          <thead class="bg-gray-50">
+                              <tr>`;
+
+                  // Definir campos a mostrar
+                  const fields = [
+                      { key: 'tipoDocumento', label: 'Tipo de Documento' },
+                      { key: 'numeroDocumento', label: 'Número de Documento' },
+                      { key: 'apellidoPaterno', label: 'Apellido Paterno' },
+                      { key: 'apellidoMaterno', label: 'Apellido Materno' },
+                      { key: 'nombres', label: 'Nombres' },
+                      { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
+                      { key: 'ubicacionEESS', label: 'Ubicación EESS' }
+                  ];
+
+                  if (data) {
+                      // Encabezados (los labels de cada campo)
+                      fields.forEach(field => {
+                          html += `
+                              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  ${field.label}
+                              </th>`;
+                      });
+
+                      html += `</tr></thead><tbody><tr>`;
+
+                      // Valores (los datos en la misma fila)
+                      fields.forEach(field => {
+                          html += `
+                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  ${data[field.key] || 'No especificado'}
+                              </td>`;
+                      });
+
+                      html += `</tr></tbody>`;
+                  } else {
+                      html += `
+                          <tr>
+                              <td colspan="${fields.length}" class="px-6 py-4 text-center text-sm text-gray-500">
+                                  No se recibieron datos válidos.
+                              </td>
+                          </tr>`;
+                  }
+
+                  html += '</table></div>';
+                  detailsCell.innerHTML = html;
+                  newDetailsRow.appendChild(detailsCell);
+                  row.parentNode.insertBefore(newDetailsRow, row.nextSibling);
+
                 } else {
                     throw new Error('Error al consultar los datos');
                 }
