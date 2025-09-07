@@ -193,7 +193,7 @@ app.post('/api/scrape-data-mock', (req, res) => {
     }
 
     const foundedData = Math.random() > 0.5;
-    const data = [{
+    const data = {
         tipoDocumento: 'DNI',
         numeroDocumento: '12345678',
         apellidoPaterno: fatherLastName,
@@ -201,13 +201,11 @@ app.post('/api/scrape-data-mock', (req, res) => {
         nombres: name,
         fechaNacimiento: '2000-01-01',
         ubicacionEESS: 'Ubicación 1'
-    }];
-    
-    res.json({
-        success: true,
-        count: 10,
-        data: foundedData ? data : []
-    });
+    };
+    if (!foundedData) {
+        return res.status(404).json({ error: 'No se encontraron datos' });
+    }
+    res.json(data);
 });
 
 // Start the server
