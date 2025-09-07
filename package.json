@@ -1,0 +1,16 @@
+{
+  "name": "alIAs",
+  "version": "1.0.0",
+  "description": "Simple Express server for alIAs app",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "4.21.2",
+    "node-fetch": "^3.3.2"
+  }
+}
