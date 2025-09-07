@@ -160,74 +160,63 @@
     <div id="notification" class="notification"></div>
 
     <script>
-        const fatherLastNameInput = document.getElementById('fatherLastName');
-        const motherLastNameInput = document.getElementById('motherLastName');
-        const nameInput = document.getElementById('nameInput');
-        const limit = 10; // Default value
-        const generateButton = document.getElementById('generateButton');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const resultsList = document.getElementById('resultsList');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const notification = document.getElementById('notification');
-        const errorContainer = document.getElementById('errorContainer');
-        const errorMessage = document.getElementById('errorMessage');
-        const consultButton = document.getElementById('consultButton');
+      const fatherLastNameInput = document.getElementById('fatherLastName');
+      const motherLastNameInput = document.getElementById('motherLastName');
+      const nameInput = document.getElementById('nameInput');
+      const limit = 10; // Default value
+      const generateButton = document.getElementById('generateButton');
+      const resultsContainer = document.getElementById('resultsContainer');
+      const resultsList = document.getElementById('resultsList');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const errorContainer = document.getElementById('errorContainer');
+      const errorMessage = document.getElementById('errorMessage');
+      const consultButton = document.getElementById('consultButton');
 
-        // Función para mostrar la notificación
-        function showNotification(message, isError = false) {
-            notification.textContent = message;
-            notification.style.backgroundColor = isError ? '#ef4444' : '#10b981';
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
+      // Función para mostrar errores
+      function showError(message) {
+        console.error(message);
+        errorMessage.textContent = message;
+        errorContainer.classList.remove('hidden');
+        setTimeout(() => {
+            errorContainer.classList.add('hidden');
+        }, 5000);
+      }
 
-        // Función para mostrar errores
-        function showError(message) {
-            console.error(message);
-            errorMessage.textContent = message;
-            errorContainer.classList.remove('hidden');
-            setTimeout(() => {
-                errorContainer.classList.add('hidden');
-            }, 5000);
-        }
-
-        // Función para consultar datos adicionales
-        async function consultarDados() {
-          const names = nameInput.value.trim();
-          const fatherLastName = fatherLastNameInput.value.trim();
-          const motherLastName = motherLastNameInput.value.trim();
+      // Función para consultar datos adicionales
+      async function consultarDados() {
+        const names = nameInput.value.trim();
+        const fatherLastName = fatherLastNameInput.value.trim();
+        const motherLastName = motherLastNameInput.value.trim();
             
-          if (!names || !fatherLastName || !motherLastName) {
-            showError('Por favor, completa todos los campos');
+        if (!names || !fatherLastName || !motherLastName) {
+          showError('Por favor, completa todos los campos');
             return;
           }
             
-          // Mostrar indicador de carga y limpiar resultados anteriores
-          errorContainer.classList.add('hidden');
-          loadingIndicator.classList.remove('hidden');
-          resultsContainer.classList.add('hidden');
-          resultsList.innerHTML = '';
+        // Mostrar indicador de carga y limpiar resultados anteriores
+        errorContainer.classList.add('hidden');
+        loadingIndicator.classList.remove('hidden');
+        resultsContainer.classList.add('hidden');
+        resultsList.innerHTML = '';
             
-          try {
-            const response = await fetch('/api/scrape-data-mock', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
+        try {
+          const response = await fetch('/api/scrape-data-mock', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
                 name: names,
                 fatherLastName,
                 motherLastName
               })
             });
                 
-            let html = '';
+          let html = '';
                 
-            if (response.status === 404) {
-              // Mostrar mensaje cuando no se encuentran datos (404)
-              html = `
+          if (response.status === 404) {
+            // Mostrar mensaje cuando no se encuentran datos (404)
+            html = `
                 <div class="text-center py-6">
                     <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -235,12 +224,13 @@
                     <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
                     <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
                 </div>`;
-            } else if (response.ok) {
-              const data = await response.json();
-              html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
+          }
+          else if (response.ok) {
+            const data = await response.json();
+            html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
-              // Definir campos a mostrar
-              const fields = [
+            // Definir campos a mostrar
+            const fields = [
                 { key: 'nombres', label: 'Nombres' },
                 { key: 'apellidoPaterno', label: 'Apellido Paterno' },
                 { key: 'apellidoMaterno', label: 'Apellido Materno' },
@@ -248,33 +238,22 @@
                 { key: 'numeroDocumento', label: 'Número de Documento' },
                 { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
                 { key: 'ubicacionEESS', label: 'Ubicación EESS' }
-              ];
+            ];
 
-              if (data) {
-                let hasData = false;
-                fields.forEach(field => {
-                  if (data[field.key]) {
-                    hasData = true;
-                    html += `
-                      <div class="grid grid-cols-3 gap-4">
-                          <div class="text-sm font-medium text-gray-500">${field.label}:</div>
-                          <div class="col-span-2 text-sm text-gray-900 font-medium">${data[field.key]}</div>
-                      </div>`;
-                  }
-                });
-                        
-                if (!hasData) {
-                  html = `
-                    <div class="text-center py-6">
-                        <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
-                        <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+            if (data) {
+              let hasData = false;
+              fields.forEach(field => {
+                if (data[field.key]) {
+                  hasData = true;
+                  html += `
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-sm font-medium text-gray-500">${field.label}:</div>
+                        <div class="col-span-2 text-sm text-gray-900 font-medium">${data[field.key]}</div>
                     </div>`;
-                  }
                 }
-              } else {
+              });
+                        
+              if (!hasData) {
                 html = `
                   <div class="text-center py-6">
                       <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -284,19 +263,31 @@
                       <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                   </div>`;
                 }
-                
-                // Actualizar el contenedor de resultados
-                resultsList.innerHTML = html;
-                resultsContainer.classList.remove('hidden');
-                
-            } catch (error) {
-                console.error('Error al consultar datos:', error);
-                showError('Error al cargar los datos. Por favor, inténtalo de nuevo.');
-            } finally {
-                // Ocultar indicador de carga
-                loadingIndicator.classList.add('hidden');
             }
-        } 
+          } else {
+            html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                </div>`;
+          }
+            
+          // Actualizar el contenedor de resultados
+          resultsList.innerHTML = html;
+          resultsContainer.classList.remove('hidden');
+        }
+        catch (error) {
+          console.error('Error al consultar datos:', error);
+          showError('Error al cargar los datos. Por favor, inténtalo de nuevo.');
+        }
+        finally {
+          // Ocultar indicador de carga
+          loadingIndicator.classList.add('hidden');
+        }
+      } 
 
 
         // consultButton on click
