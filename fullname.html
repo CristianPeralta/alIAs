@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Nombres Completos con IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .input-group input {
+            flex-grow: 1;
+        }
+        .result-list {
+            list-style: decimal inside;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 2rem;
+            background-color: #10b981;
+            color: white;
+            border-radius: 9999px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 1000;
+        }
+        .notification.show {
+            opacity: 1;
+        }
+        .name-section {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .name-input {
+            flex: 1;
+        }
+        .details-row {
+            display: none;
+        }
+        .details-row.visible {
+            display: table-row;
+        }
+        .details-content {
+            padding: 1rem;
+            background-color: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #93c5fd;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white p-8 rounded-xl shadow-lg w-full">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Generador de Nombres Completos con IA</h1>
+        <p class="text-gray-600 text-center mb-6">
+            Ingresa los apellidos y nombre para generar variaciones de escritura, fonética y homónimos comunes.
+        </p>
+        
+        <div class="space-y-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="fatherLastName" class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno</label>
+                    <input 
+                        id="fatherLastName" 
+                        type="text" 
+                        placeholder="Ej. Pérez"
+                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div>
+                    <label for="motherLastName" class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno</label>
+                    <input 
+                        id="motherLastName" 
+                        type="text" 
+                        placeholder="Ej. Gómez"
+                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+            </div>
+            
+            <div class="name-section">
+                <div class="name-input">
+                    <label for="nameInput" class="block text-sm font-medium text-gray-700 mb-1">Nombres</label>
+                    <input 
+                        id="nameInput" 
+                        type="text" 
+                        placeholder="Ej. Juan Carlos"
+                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div class="w-24">
+                    <label for="limitInput" class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
+                    <input
+                        id="limitInput"
+                        type="number"
+                        value="10"
+                        min="1"
+                        max="20"
+                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                    />
+                </div>
+                <button 
+                    id="generateButton" 
+                    class="h-[42px] bg-indigo-600 text-white px-4 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md whitespace-nowrap"
+                >
+                    Generar Nombres
+                </button>
+            </div>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-center text-indigo-600 font-semibold my-4">
+            Generando variaciones con IA...
+        </div>
+        
+        <div id="errorContainer" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p id="errorMessage" class="text-sm"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsContainer" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-700">Variaciones encontradas:</h2>
+                <button 
+                    id="copyButton" 
+                    class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                    title="Copiar al portapapeles"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    Copiar
+                </button>
+            </div>
+            <table class="min-w-full bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombres</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apellido Paterno</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apellido Materno</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Las filas se agregarán aquí dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Contenedor para las notificaciones -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        const fatherLastNameInput = document.getElementById('fatherLastName');
+        const motherLastNameInput = document.getElementById('motherLastName');
+        const nameInput = document.getElementById('nameInput');
+        const limitInput = document.getElementById('limitInput');
+        const generateButton = document.getElementById('generateButton');
+        const copyButton = document.getElementById('copyButton');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsTableBody = document.getElementById('resultsTableBody');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const notification = document.getElementById('notification');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Función para mostrar la notificación
+        function showNotification(message, isError = false) {
+            notification.textContent = message;
+            notification.style.backgroundColor = isError ? '#ef4444' : '#10b981';
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Función para mostrar errores
+        function showError(message) {
+            console.error(message);
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+            setTimeout(() => {
+                errorContainer.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Función para consultar datos adicionales
+        async function consultarDados(button) {
+            const row = button.closest('tr');
+            const detailsRow = row.nextElementSibling;
+            const loadingIndicator = button.querySelector('.loading-spinner') || document.createElement('span');
+            
+            // Si ya está cargando o ya se consultó, no hacer nada
+            if (button.disabled) return;
+            
+            // Si ya tiene datos, solo alternar la visibilidad
+            if (detailsRow && detailsRow.classList.contains('details-row')) {
+                detailsRow.classList.toggle('visible');
+                return;
+            }
+            
+            // Configurar estado de carga
+            button.disabled = true;
+            loadingIndicator.className = 'loading-spinner';
+            button.prepend(loadingIndicator);
+            button.textContent = 'Cargando...';
+            
+            try {
+                const names = button.dataset.names;
+                console.log(button.dataset);
+                const fatherLastName = button.dataset.fatherLastname;
+                const motherLastName = button.dataset.motherLastname;
+                
+                const response = await fetch('/api/scrape-data-mock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: names,
+                        fatherLastName,
+                        motherLastName
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error al consultar los datos');
+                }
+                
+                const data = await response.json();
+                console.log('data', data);
+                
+                // Crear fila de detalles si no existe
+                let newDetailsRow = document.createElement('tr');
+                newDetailsRow.className = 'details-row';
+                
+                // Crear celda que ocupa todas las columnas
+                let detailsCell = document.createElement('td');
+                detailsCell.colSpan = 5; // Ajusta según el número de columnas
+                detailsCell.className = 'details-content';
+                
+                // Mostrar que no se encontraron datos
+                if (!data || !data.data || data.data.length === 0) {
+                    console.log('No se encontraron datos');
+                    detailsCell.innerHTML = '<div class="text-center py-4"><svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="mt-2 text-sm font-medium text-gray-900">Sin resultados</h3><p class="mt-1 text-sm text-gray-500">No se encontraron datos para la consulta realizada.</p></div>';
+                    newDetailsRow.appendChild(detailsCell);
+                    row.parentNode.insertBefore(newDetailsRow, row.nextSibling);
+                } else {
+                  console.log("SI ENCONTRO DATOS")
+                  let html = '<div class="space-y-4">';
+                    
+                    // Mostrar datos principales (success, count, etc.)
+                    for (const [key, value] of Object.entries(data)) {
+                        if (key !== 'data' && value !== null && value !== undefined) {
+                            html += `<div class="flex">
+                                <span class="font-medium text-gray-700 w-40 flex-shrink-0">${key}:</span>
+                                <span>${value}</span>
+                            </div>`;
+                        }
+                    }
+                    
+                    // Mostrar datos del array data
+                    if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+                        html += '<div class="mt-4 pt-4 border-t border-gray-200">';
+                        data.data.forEach((item, index) => {
+                            if (typeof item === 'object' && item !== null) {
+                                html += '<div class="bg-gray-50 p-4 rounded-lg mb-3">';
+                                for (const [key, value] of Object.entries(item)) {
+                                    if (value !== null && value !== undefined) {
+                                        html += `
+                                        <div class="flex mb-2">
+                                            <span class="font-medium text-gray-700 w-48 flex-shrink-0">${key}:</span>
+                                            <span class="break-words flex-1">${value || ''}</span>
+                                        </div>`;
+                                    }
+                                }
+                                html += '</div>';
+                            }
+                        });
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                    detailsCell.innerHTML = html;
+                }
+                
+                newDetailsRow.appendChild(detailsCell);
+                
+                // Insertar después de la fila actual
+                row.parentNode.insertBefore(newDetailsRow, row.nextSibling);
+                
+                // Mostrar con animación
+                setTimeout(() => {
+                    newDetailsRow.classList.add('visible');
+                }, 10);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error al consultar los datos. Intente nuevamente.');
+            } finally {
+                // Restaurar estado del botón
+                button.disabled = false;
+                button.textContent = 'Consultar';
+                loadingIndicator.remove();
+            }
+        }
+
+        let debounceTimer;
+
+        // Función para validar los campos
+        function validateFields() {
+            const fatherLastName = fatherLastNameInput.value.trim();
+            const motherLastName = motherLastNameInput.value.trim();
+            const name = nameInput.value.trim();
+            const limit = parseInt(limitInput.value, 10);
+            
+            // Validaciones
+            if (!fatherLastName || !motherLastName) {
+                errorContainer.classList.remove('hidden');
+                errorMessage.textContent = 'Por favor ingresa ambos apellidos';
+                return false;
+            }
+
+            if (!name) {
+                errorContainer.classList.remove('hidden');
+                errorMessage.textContent = 'Por favor ingresa al menos un nombre';
+                return false;
+            }
+            
+            if (isNaN(limit) || limit < 1 || limit > 20) {
+                errorContainer.classList.remove('hidden');
+                errorMessage.textContent = 'El número de variaciones debe estar entre 1 y 20';
+                return false;
+            }
+            
+            errorContainer.classList.add('hidden');
+            return true;
+        }
+
+        // Función para capitalizar nombres propios
+        function formatName(name) {
+            return name.toLowerCase()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+
+        // Función para manejar la generación de nombres
+        function generateNames() {
+            if (!validateFields()) return;
+            
+            const fatherLastName = fatherLastNameInput.value.trim();
+            const motherLastName = motherLastNameInput.value.trim();
+            const name = nameInput.value.trim();
+            
+            // Formatear los nombres
+            const formattedName = formatName(name);
+            const formattedFatherLastName = formatName(fatherLastName);
+            const formattedMotherLastName = formatName(motherLastName);
+            const fullName = `${formattedName} ${formattedFatherLastName} ${formattedMotherLastName}`;
+            
+            // Limpiar la tabla y agregar el nuevo nombre
+            resultsTableBody.innerHTML = '';
+            
+            const row = document.createElement('tr');
+            row.classList.add('hover:bg-gray-50');
+            
+            // Celda de índice
+            const indexCell = document.createElement('td');
+            indexCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-500');
+            indexCell.textContent = '1';
+            
+            // Celda de nombres
+            const nameCell = document.createElement('td');
+            nameCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'font-medium', 'text-gray-900');
+            nameCell.textContent = formattedName;
+            
+            // Celda de apellido paterno
+            const fatherLastNameCell = document.createElement('td');
+            fatherLastNameCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-900');
+            fatherLastNameCell.textContent = formattedFatherLastName;
+            
+            // Celda de apellido materno
+            const motherLastNameCell = document.createElement('td');
+            motherLastNameCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-900');
+            motherLastNameCell.textContent = formattedMotherLastName;
+            
+            // Celda de acción
+            const actionCell = document.createElement('td');
+            actionCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-500');
+            
+            const greetButton = document.createElement('button');
+            greetButton.textContent = 'Saludar';
+            greetButton.classList.add('bg-blue-500', 'hover:bg-blue-700', 'text-white', 'font-bold', 'py-1', 'px-3', 'rounded', 'text-sm', 'whitespace-nowrap');
+            greetButton.onclick = function() {
+                alert(`¡Hola ${fullName}!`);
+            };
+            
+            const consultarButton = document.createElement('button');
+            consultarButton.textContent = 'Consultar';
+            consultarButton.classList.add('consultar-btn', 'bg-blue-100', 'text-blue-700', 'px-2', 'py-1', 'rounded', 'text-sm', 'whitespace-nowrap', 'ml-2');
+            consultarButton.dataset.names = name;
+            consultarButton.dataset.fatherLastname = fatherLastName;
+            consultarButton.dataset.motherLastname = motherLastName;
+            consultarButton.addEventListener('click', function() {
+                consultarDados(this);
+            });
+            
+            actionCell.appendChild(greetButton);
+            actionCell.appendChild(consultarButton);
+            
+            // Agregar todas las celdas a la fila
+            row.appendChild(indexCell);
+            row.appendChild(nameCell);
+            row.appendChild(fatherLastNameCell);
+            row.appendChild(motherLastNameCell);
+            row.appendChild(actionCell);
+            
+            resultsTableBody.appendChild(row);
+            resultsContainer.classList.remove('hidden');
+            showNotification('Nombre agregado');
+            loadingIndicator.classList.add('hidden');
+        }
+
+        // Manejar clic en el botón de copiar
+        copyButton.addEventListener('click', () => {
+            const items = Array.from(resultsTableBody.querySelectorAll('tr'))
+                .map(row => {
+                    const names = row.cells[1].textContent.trim();
+                    const fatherLastName = row.cells[2].textContent.trim();
+                    const motherLastName = row.cells[3].textContent.trim();
+                    return `${names} ${fatherLastName} ${motherLastName}`;
+                })
+                .join('\n');
+            
+            if (!items) {
+                showNotification('No hay contenido para copiar', true);
+                return;
+            }
+            
+            navigator.clipboard.writeText(items)
+                .then(() => showNotification('¡Copiado al portapapeles!'))
+                .catch(err => {
+                    console.error('Error al copiar:', err);
+                    showNotification('Error al copiar', true);
+                });
+        });
+
+        // Función para manejar la entrada del usuario con debounce
+        function handleInput() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                generateNames();
+            }, 500);
+        }
+
+        // Escuchar cambios en los inputs
+        [fatherLastNameInput, motherLastNameInput, nameInput, limitInput].forEach(input => {
+            input.addEventListener('input', handleInput);
+            
+            // También validar al perder el foco
+            input.addEventListener('blur', () => {
+                generateNames();
+            });
+            
+            // También mantener el soporte para Enter
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(debounceTimer);
+                    generateNames();
+                }
+            });
+        });
+        
+        // Manejar clic en el botón de generar
+        generateButton.addEventListener('click', () => {
+            clearTimeout(debounceTimer);
+            generateNames();
+        });
+    </script>
+</body>
+</html>

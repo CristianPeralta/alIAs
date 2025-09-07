@@ -16,9 +16,13 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Serve the main HTML file
+// Serve the main HTML files
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'app.html'));
+});
+
+app.get('/fullname', (req, res) => {
+    res.sendFile(path.join(__dirname, 'fullname.html'));
 });
 
 // API endpoint to handle name variations
@@ -74,7 +78,20 @@ app.post('/api/generate-names', async (req, res) => {
     }
 });
 
-// Web scraping endpoint using Puppeteer
+/**
+ * Endpoint to scrape data from Minsa website.
+ * @method POST
+ * @path /api/scrape-data
+ * @body {Object} body - The request body.
+ * @bodyparam {string} fatherLastName - The father's last name.
+ * @bodyparam {string} motherLastName - The mother's last name.
+ * @bodyparam {string} name - The person's name.
+ * @response {Object} result - The result of the scrapping.
+ * @response {boolean} result.success - True if the scrapping was successful.
+ * @response {number} result.count - The number of results found.
+ * @response {Array<Object>} result.data - The scraped data.
+ */
+
 app.post('/api/scrape-data', async (req, res) => {
     let browser;
     try {
@@ -164,6 +181,33 @@ app.post('/api/scrape-data', async (req, res) => {
             await browser.close();
         }
     }
+});
+
+
+// Mock endpoint to scrape data from Minsa website.
+app.post('/api/scrape-data-mock', (req, res) => {
+    const { fatherLastName, motherLastName, name } = req.body;
+    
+    if (!fatherLastName || !motherLastName || !name) {
+        return res.status(400).json({ error: 'Father lastname, mother lastname and name are required' });
+    }
+
+    const foundedData = false;
+    const data = [{
+        tipoDocumento: 'DNI',
+        numeroDocumento: '12345678',
+        apellidoPaterno: fatherLastName,
+        apellidoMaterno: motherLastName,
+        nombres: name,
+        fechaNacimiento: '2000-01-01',
+        ubicacionEESS: 'Ubicación 1'
+    }];
+    
+    res.json({
+        success: true,
+        count: 10,
+        data: foundedData ? data : []
+    });
 });
 
 // Start the server
