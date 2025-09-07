@@ -192,7 +192,7 @@ app.post('/api/scrape-data-mock', (req, res) => {
         return res.status(400).json({ error: 'Father lastname, mother lastname and name are required' });
     }
 
-    const foundedData = false;
+    const foundedData = Math.random() > 0.5;
     const data = [{
         tipoDocumento: 'DNI',
         numeroDocumento: '12345678',

@@ -152,19 +152,6 @@
         </div>
 
         <div id="resultsContainer" class="hidden">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-700">Variaciones encontradas:</h2>
-                <button 
-                    id="copyButton" 
-                    class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-lg flex items-center gap-1 transition-colors"
-                    title="Copiar al portapapeles"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                    </svg>
-                    Copiar
-                </button>
-            </div>
             <table class="min-w-full bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <thead class="bg-gray-50">
                     <tr>
@@ -191,7 +178,6 @@
         const nameInput = document.getElementById('nameInput');
         const limitInput = document.getElementById('limitInput');
         const generateButton = document.getElementById('generateButton');
-        const copyButton = document.getElementById('copyButton');
         const resultsContainer = document.getElementById('resultsContainer');
         const resultsTableBody = document.getElementById('resultsTableBody');
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -225,24 +211,24 @@
             const detailsRow = row.nextElementSibling;
             const loadingIndicator = button.querySelector('.loading-spinner') || document.createElement('span');
             
-            // Si ya está cargando o ya se consultó, no hacer nada
-            if (button.disabled) return;
+            // Si ya está cargando, no hacer nada
+            if (button.classList.contains('loading')) return;
             
-            // Si ya tiene datos, solo alternar la visibilidad
+            // Si ya tiene datos, eliminamos la fila de detalles para forzar una nueva consulta
             if (detailsRow && detailsRow.classList.contains('details-row')) {
-                detailsRow.classList.toggle('visible');
-                return;
+                detailsRow.remove();
             }
             
             // Configurar estado de carga
             button.disabled = true;
+            button.classList.add('loading');
+            button.innerHTML = ''; // Limpiar el contenido del botón
             loadingIndicator.className = 'loading-spinner';
-            button.prepend(loadingIndicator);
-            button.textContent = 'Cargando...';
+            button.appendChild(loadingIndicator);
+            button.appendChild(document.createTextNode('Cargando...'));
             
             try {
                 const names = button.dataset.names;
-                console.log(button.dataset);
                 const fatherLastName = button.dataset.fatherLastname;
                 const motherLastName = button.dataset.motherLastname;
                 
@@ -263,7 +249,6 @@
                 }
                 
                 const data = await response.json();
-                console.log('data', data);
                 
                 // Crear fila de detalles si no existe
                 let newDetailsRow = document.createElement('tr');
@@ -276,12 +261,10 @@
                 
                 // Mostrar que no se encontraron datos
                 if (!data || !data.data || data.data.length === 0) {
-                    console.log('No se encontraron datos');
                     detailsCell.innerHTML = '<div class="text-center py-4"><svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><h3 class="mt-2 text-sm font-medium text-gray-900">Sin resultados</h3><p class="mt-1 text-sm text-gray-500">No se encontraron datos para la consulta realizada.</p></div>';
                     newDetailsRow.appendChild(detailsCell);
                     row.parentNode.insertBefore(newDetailsRow, row.nextSibling);
                 } else {
-                  console.log("SI ENCONTRO DATOS")
                   let html = '<div class="space-y-4">';
                     
                     // Mostrar datos principales (success, count, etc.)
@@ -334,8 +317,11 @@
             } finally {
                 // Restaurar estado del botón
                 button.disabled = false;
-                button.textContent = 'Consultar';
-                loadingIndicator.remove();
+                button.classList.remove('loading');
+                button.innerHTML = 'Consultar';
+                if (loadingIndicator.parentNode === button) {
+                    loadingIndicator.remove();
+                }
             }
         }
 
@@ -423,24 +409,18 @@
             const actionCell = document.createElement('td');
             actionCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-500');
             
-            const greetButton = document.createElement('button');
-            greetButton.textContent = 'Saludar';
-            greetButton.classList.add('bg-blue-500', 'hover:bg-blue-700', 'text-white', 'font-bold', 'py-1', 'px-3', 'rounded', 'text-sm', 'whitespace-nowrap');
-            greetButton.onclick = function() {
-                alert(`¡Hola ${fullName}!`);
-            };
-            
             const consultarButton = document.createElement('button');
             consultarButton.textContent = 'Consultar';
             consultarButton.classList.add('consultar-btn', 'bg-blue-100', 'text-blue-700', 'px-2', 'py-1', 'rounded', 'text-sm', 'whitespace-nowrap', 'ml-2');
             consultarButton.dataset.names = name;
             consultarButton.dataset.fatherLastname = fatherLastName;
             consultarButton.dataset.motherLastname = motherLastName;
-            consultarButton.addEventListener('click', function() {
+            consultarButton.addEventListener('click', function(e) {
+                e.preventDefault(); // Prevent form submission
+                e.stopPropagation(); // Stop event bubbling
                 consultarDados(this);
             });
-            
-            actionCell.appendChild(greetButton);
+
             actionCell.appendChild(consultarButton);
             
             // Agregar todas las celdas a la fila
@@ -452,33 +432,8 @@
             
             resultsTableBody.appendChild(row);
             resultsContainer.classList.remove('hidden');
-            showNotification('Nombre agregado');
             loadingIndicator.classList.add('hidden');
         }
-
-        // Manejar clic en el botón de copiar
-        copyButton.addEventListener('click', () => {
-            const items = Array.from(resultsTableBody.querySelectorAll('tr'))
-                .map(row => {
-                    const names = row.cells[1].textContent.trim();
-                    const fatherLastName = row.cells[2].textContent.trim();
-                    const motherLastName = row.cells[3].textContent.trim();
-                    return `${names} ${fatherLastName} ${motherLastName}`;
-                })
-                .join('\n');
-            
-            if (!items) {
-                showNotification('No hay contenido para copiar', true);
-                return;
-            }
-            
-            navigator.clipboard.writeText(items)
-                .then(() => showNotification('¡Copiado al portapapeles!'))
-                .catch(err => {
-                    console.error('Error al copiar:', err);
-                    showNotification('Error al copiar', true);
-                });
-        });
 
         // Función para manejar la entrada del usuario con debounce
         function handleInput() {
