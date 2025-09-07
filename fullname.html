@@ -151,21 +151,8 @@
             </div>
         </div>
 
-        <div id="resultsContainer" class="hidden">
-            <table class="min-w-full bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombres</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apellido Paterno</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apellido Materno</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
-                    <!-- Las filas se agregarán aquí dinámicamente -->
-                </tbody>
-            </table>
+        <div id="resultsContainer" class="hidden space-y-4">
+          <div id="resultsList"></div>
         </div>
     </div>
     
@@ -179,11 +166,12 @@
         const limit = 10; // Default value
         const generateButton = document.getElementById('generateButton');
         const resultsContainer = document.getElementById('resultsContainer');
-        const resultsTableBody = document.getElementById('resultsTableBody');
+        const resultsList = document.getElementById('resultsList');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const notification = document.getElementById('notification');
         const errorContainer = document.getElementById('errorContainer');
         const errorMessage = document.getElementById('errorMessage');
+        const consultButton = document.getElementById('consultButton');
 
         // Función para mostrar la notificación
         function showNotification(message, isError = false) {
@@ -206,142 +194,114 @@
         }
 
         // Función para consultar datos adicionales
-        async function consultarDados(button) {
-            const row = button.closest('tr');
-            const detailsRow = row.nextElementSibling;
-            const loadingIndicator = button.querySelector('.loading-spinner') || document.createElement('span');
+        async function consultarDados() {
+          const names = nameInput.value.trim();
+          const fatherLastName = fatherLastNameInput.value.trim();
+          const motherLastName = motherLastNameInput.value.trim();
             
-            // Si ya está cargando, no hacer nada
-            if (button.classList.contains('loading')) return;
+          if (!names || !fatherLastName || !motherLastName) {
+            showError('Por favor, completa todos los campos');
+            return;
+          }
             
-            // Si ya tiene datos, eliminamos la fila de detalles para forzar una nueva consulta
-            if (detailsRow && detailsRow.classList.contains('details-row')) {
-                detailsRow.remove();
-            }
+          // Mostrar indicador de carga y limpiar resultados anteriores
+          errorContainer.classList.add('hidden');
+          loadingIndicator.classList.remove('hidden');
+          resultsContainer.classList.add('hidden');
+          resultsList.innerHTML = '';
             
-            // Configurar estado de carga
-            button.disabled = true;
-            button.classList.add('loading');
-            button.innerHTML = ''; // Limpiar el contenido del botón
-            loadingIndicator.className = 'loading-spinner';
-            button.appendChild(loadingIndicator);
-            button.appendChild(document.createTextNode('Cargando...'));
-            
-            try {
-                const names = button.dataset.names;
-                const fatherLastName = button.dataset.fatherLastname;
-                const motherLastName = button.dataset.motherLastname;
+          try {
+            const response = await fetch('/api/scrape-data-mock', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name: names,
+                fatherLastName,
+                motherLastName
+              })
+            });
                 
-                const response = await fetch('/api/scrape-data-mock', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name: names,
-                        fatherLastName,
-                        motherLastName
-                    })
-                });
+            let html = '';
                 
-                // Crear fila de detalles
-                let newDetailsRow = document.createElement('tr');
-                newDetailsRow.className = 'details-row';
-                
-                // Crear celda que ocupa todas las columnas
-                let detailsCell = document.createElement('td');
-                detailsCell.colSpan = 5; // Ajusta según el número de columnas
-                detailsCell.className = 'details-content';
-                
-                if (response.status === 404) {
-                    // Mostrar plantilla cuando no se encuentran datos (404)
-                    detailsCell.innerHTML = `
-                        <div class="text-center py-2">
-                            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p class="mt-1 text-gray-500">No se encontraron datos para la consulta realizada.</p>
-                        </div>`;
-                    newDetailsRow.appendChild(detailsCell);
-                    row.parentNode.insertBefore(newDetailsRow, row.nextSibling);
-                } else if (response.ok) {
-                  const data = await response.json();
+            if (response.status === 404) {
+              // Mostrar mensaje cuando no se encuentran datos (404)
+              html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
+                </div>`;
+            } else if (response.ok) {
+              const data = await response.json();
+              html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
-                  // Mostrar los datos recibidos en formato de tabla
-                  let html = `
-                  <div class="overflow-x-auto">
-                      <table class="min-w-full bg-white rounded-lg overflow-hidden">
-                          <thead class="bg-gray-50">
-                              <tr>`;
+              // Definir campos a mostrar
+              const fields = [
+                { key: 'nombres', label: 'Nombres' },
+                { key: 'apellidoPaterno', label: 'Apellido Paterno' },
+                { key: 'apellidoMaterno', label: 'Apellido Materno' },
+                { key: 'tipoDocumento', label: 'Tipo de Documento' },
+                { key: 'numeroDocumento', label: 'Número de Documento' },
+                { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
+                { key: 'ubicacionEESS', label: 'Ubicación EESS' }
+              ];
 
-                  // Definir campos a mostrar
-                  const fields = [
-                      { key: 'nombres', label: 'Nombres' },
-                      { key: 'apellidoPaterno', label: 'Apellido Paterno' },
-                      { key: 'apellidoMaterno', label: 'Apellido Materno' },
-                      { key: 'tipoDocumento', label: 'Tipo de Documento' },
-                      { key: 'numeroDocumento', label: 'Número de Documento' },
-                      { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
-                      { key: 'ubicacionEESS', label: 'Ubicación EESS' }
-                  ];
-
-                  if (data) {
-                      // Encabezados (los labels de cada campo)
-                      fields.forEach(field => {
-                          html += `
-                              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  ${field.label}
-                              </th>`;
-                      });
-
-                      html += `</tr></thead><tbody><tr>`;
-
-                      // Valores (los datos en la misma fila)
-                      fields.forEach(field => {
-                          html += `
-                              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                  ${data[field.key] || 'No especificado'}
-                              </td>`;
-                      });
-
-                      html += `</tr></tbody>`;
-                  } else {
-                      html += `
-                          <tr>
-                              <td colspan="${fields.length}" class="px-6 py-4 text-center text-sm text-gray-500">
-                                  No se recibieron datos válidos.
-                              </td>
-                          </tr>`;
+              if (data) {
+                let hasData = false;
+                fields.forEach(field => {
+                  if (data[field.key]) {
+                    hasData = true;
+                    html += `
+                      <div class="grid grid-cols-3 gap-4">
+                          <div class="text-sm font-medium text-gray-500">${field.label}:</div>
+                          <div class="col-span-2 text-sm text-gray-900 font-medium">${data[field.key]}</div>
+                      </div>`;
                   }
-
-                  html += '</table></div>';
-                  detailsCell.innerHTML = html;
-                  newDetailsRow.appendChild(detailsCell);
-                  row.parentNode.insertBefore(newDetailsRow, row.nextSibling);
-
-                } else {
-                    throw new Error('Error al consultar los datos');
+                });
+                        
+                if (!hasData) {
+                  html = `
+                    <div class="text-center py-6">
+                        <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                        <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                    </div>`;
+                  }
+                }
+              } else {
+                html = `
+                  <div class="text-center py-6">
+                      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                      <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                  </div>`;
                 }
                 
-                // Mostrar con animación
-                setTimeout(() => {
-                    newDetailsRow.classList.add('visible');
-                }, 10);
+                // Actualizar el contenedor de resultados
+                resultsList.innerHTML = html;
+                resultsContainer.classList.remove('hidden');
                 
             } catch (error) {
-                console.error('Error:', error);
-                showError('Error al consultar los datos. Intente nuevamente.');
+                console.error('Error al consultar datos:', error);
+                showError('Error al cargar los datos. Por favor, inténtalo de nuevo.');
             } finally {
-                // Restaurar estado del botón
-                button.disabled = false;
-                button.classList.remove('loading');
-                button.innerHTML = 'Consultar';
-                if (loadingIndicator.parentNode === button) {
-                    loadingIndicator.remove();
-                }
+                // Ocultar indicador de carga
+                loadingIndicator.classList.add('hidden');
             }
-        }
+        } 
 
+
+        // consultButton on click
+        consultButton.addEventListener('click', consultarDados);
+        
         let debounceTimer;
 
         // Función para validar los campos
@@ -374,103 +334,6 @@
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
         }
-
-        // Función para manejar la generación de nombres
-        function generateFirstTuple() {
-            if (!validateFields()) return;
-            
-            const fatherLastName = fatherLastNameInput.value.trim();
-            const motherLastName = motherLastNameInput.value.trim();
-            const name = nameInput.value.trim();
-            
-            // Formatear los nombres
-            const formattedName = formatName(name);
-            const formattedFatherLastName = formatName(fatherLastName);
-            const formattedMotherLastName = formatName(motherLastName);
-            const fullName = `${formattedName} ${formattedFatherLastName} ${formattedMotherLastName}`;
-            
-            // Limpiar la tabla y agregar el nuevo nombre
-            resultsTableBody.innerHTML = '';
-            
-            const row = document.createElement('tr');
-            row.classList.add('hover:bg-gray-50');
-            
-            // Celda de índice
-            const indexCell = document.createElement('td');
-            indexCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-500');
-            indexCell.textContent = '1';
-            
-            // Celda de nombres
-            const nameCell = document.createElement('td');
-            nameCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'font-medium', 'text-gray-900');
-            nameCell.textContent = formattedName;
-            
-            // Celda de apellido paterno
-            const fatherLastNameCell = document.createElement('td');
-            fatherLastNameCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-900');
-            fatherLastNameCell.textContent = formattedFatherLastName;
-            
-            // Celda de apellido materno
-            const motherLastNameCell = document.createElement('td');
-            motherLastNameCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-900');
-            motherLastNameCell.textContent = formattedMotherLastName;
-            
-            // Celda de acción
-            const actionCell = document.createElement('td');
-            actionCell.classList.add('px-6', 'py-4', 'whitespace-nowrap', 'text-sm', 'text-gray-500');
-            
-            const consultarButton = document.createElement('button');
-            consultarButton.textContent = 'Consultar';
-            consultarButton.classList.add('consultar-btn', 'bg-blue-100', 'text-blue-700', 'px-2', 'py-1', 'rounded', 'text-sm', 'whitespace-nowrap', 'ml-2');
-            consultarButton.dataset.names = name;
-            consultarButton.dataset.fatherLastname = fatherLastName;
-            consultarButton.dataset.motherLastname = motherLastName;
-            consultarButton.addEventListener('click', function(e) {
-                e.preventDefault(); // Prevent form submission
-                e.stopPropagation(); // Stop event bubbling
-                consultarDados(this);
-            });
-
-            actionCell.appendChild(consultarButton);
-            
-            // Agregar todas las celdas a la fila
-            row.appendChild(indexCell);
-            row.appendChild(nameCell);
-            row.appendChild(fatherLastNameCell);
-            row.appendChild(motherLastNameCell);
-            row.appendChild(actionCell);
-            
-            resultsTableBody.appendChild(row);
-            resultsContainer.classList.remove('hidden');
-            loadingIndicator.classList.add('hidden');
-        }
-
-        // Función para manejar la entrada del usuario con debounce
-        function handleInput() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                generateFirstTuple();
-            }, 500);
-        }
-
-        // Escuchar cambios en los inputs
-        [fatherLastNameInput, motherLastNameInput, nameInput].forEach(input => {
-            input.addEventListener('input', handleInput);
-            
-            // También validar al perder el foco
-            input.addEventListener('blur', () => {
-                generateFirstTuple();
-            });
-            
-            // También mantener el soporte para Enter
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    clearTimeout(debounceTimer);
-                    generateFirstTuple();
-                }
-            });
-        });
 
         // Manejar clic en el botón de generar
         generateButton.addEventListener('click', () => {
@@ -543,8 +406,7 @@
             .finally(() => {
                 loadingIndicator.classList.add('hidden');
             });
-        });
-        
+        });   
     </script>
 </body>
 </html>
