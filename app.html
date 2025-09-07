@@ -76,6 +76,19 @@
         <div id="loadingIndicator" class="hidden text-center text-indigo-600 font-semibold my-4">
             Generando variaciones con IA...
         </div>
+        
+        <div id="errorContainer" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p id="errorMessage" class="text-sm"></p>
+                </div>
+            </div>
+        </div>
 
         <div id="resultsContainer" class="hidden">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Variaciones encontradas:</h2>
@@ -96,6 +109,8 @@
         const resultsList = document.getElementById('resultsList');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const notification = document.getElementById('notification');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
 
         // Función para mostrar la notificación
         function showNotification(message) {
@@ -106,12 +121,28 @@
             }, 3000); // La notificación desaparecerá después de 3 segundos
         }
 
+        // Función para mostrar errores
+        function showError(message) {
+            console.error(message);
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+            setTimeout(() => {
+                errorContainer.classList.add('hidden');
+            }, 5000); // El error desaparecerá después de 5 segundos
+        }
+
         generateButton.addEventListener('click', async () => {
             const name = nameInput.value.trim();
             const limit = parseInt(limitInput.value, 10);
 
-            if (!name || isNaN(limit) || limit < 1) {
-                // Si el input está vacío o el límite no es válido, ocultar resultados y salir
+            if (!name) {
+                showError('Por favor ingresa un nombre');
+                resultsContainer.classList.add('hidden');
+                return;
+            }
+            
+            if (isNaN(limit) || limit < 1) {
+                showError('El número de variaciones debe ser mayor a 0');
                 resultsContainer.classList.add('hidden');
                 return;
             }
@@ -147,7 +178,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Error en la API: ${response.statusText}`);
+                    const errorText = await response.text();
+                    throw new Error(`Error en la API (${response.status}): ${errorText || response.statusText}`);
                 }
 
                 const result = await response.json();
@@ -180,15 +212,16 @@
                     });
                     resultsContainer.classList.remove('hidden');
                 } else {
-                    console.error("No se encontraron resultados válidos en la respuesta de la API.");
-                    resultsList.innerHTML = '<li class="text-red-500">No se pudieron generar variaciones. Intenta con otro nombre.</li>';
+                    const errorMsg = "No se encontraron resultados válidos en la respuesta de la API.";
+                    showError(errorMsg);
                     resultsContainer.classList.remove('hidden');
                 }
 
             } catch (error) {
-                console.error("Error al generar variaciones:", error);
-                resultsList.innerHTML = '<li class="text-red-500">Ocurrió un error. Por favor, revisa la consola para más detalles.</li>';
-                resultsContainer.classList.remove('hidden');
+                const errorMsg = `Error al generar variaciones: ${error.message}`;
+                showError(errorMsg);
+                resultsList.innerHTML = '';
+                resultsContainer.classList.add('hidden');
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
