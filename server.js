@@ -83,7 +83,7 @@ app.post('/api/generate-names', async (req, res) => {
         res.status(500).json({ error: 'Error al procesar la solicitud' });
     }
 });
-
+let indexNames = 0;
 // MOck endpoint to generate names
 app.post('/api/generate-names-mock', (req, res) => {
     const { name, limit } = req.body;
@@ -93,21 +93,39 @@ app.post('/api/generate-names-mock', (req, res) => {
     }
     
     const names = [
-        "Jessica",
-        "Yesica",
-        "Yessica",
-        "Jéssica",
-        "Jesica",
-        "Jessika",
-        "Yesika",
-        "Jesyca",
-        "Jezica",
-        "Yezica"
+        [
+            "Jessica",
+            "Yesica",
+            "Yessica",
+            "Jéssica",
+            "Jesica",
+            "Jessika",
+            "Yesika",
+            "Jesyca",
+            "Jezica",
+            "Yezica"
+        ],
+        [
+            "John",
+            "Jon",
+            "Jo",
+            "Jón",
+            "Jonh",
+            "Jonny",
+            "Jony",
+            "Joh",
+            "Johann",
+            "Johan",
+            "Johannes"
+        ]
     ];
-    
+    indexNames++;
+    if (indexNames >= names.length) {
+        indexNames = 0;
+    }
     res.json({
         name,
-        candidates: names,
+        candidates: names[indexNames],
     });
 });
 

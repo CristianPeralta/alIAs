@@ -60,6 +60,43 @@
             background-color: #f9fafb;
             border-top: 1px solid #e5e7eb;
         }
+        /* Style for dropdown items */
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        .hidden {
+            display: none !important;
+        }
+        #nameDropdown {
+            box-sizing: border-box;
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          max-height: 15rem;
+          overflow-y: auto;
+          margin-top: 0.25rem;
+        }
+        
+        #nameDropdown button {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 0.5rem 1rem;
+          border: none;
+          background: none;
+          cursor: pointer;
+        }
+        
+        #nameDropdown button:hover {
+          background-color: #f3f4f6;
+        }
+        
         .loading-spinner {
             display: inline-block;
             width: 1rem;
@@ -104,15 +141,19 @@
                 </div>
             </div>
             
-            <div class="name-section">
-                <div class="name-input">
+            <div class="name-section relative">
+                <div class="name-input w-full relative">
                     <label for="nameInput" class="block text-sm font-medium text-gray-700 mb-1">Nombres</label>
-                    <input 
-                        id="nameInput" 
-                        type="text" 
-                        placeholder="Ej. Juan Carlos"
-                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
+                    <div class="relative">
+                        <input 
+                            id="nameInput" 
+                            type="text" 
+                            placeholder="Ej. Juan Carlos"
+                            class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10"
+                            autocomplete="off"
+                        />
+                        <div id="nameDropdown" class="absolute w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 hidden"></div>
+                    </div>
                 </div>
                 <button 
                     id="generateButton" 
@@ -120,7 +161,7 @@
                     alt="Generar Nombres Alternativos"
                 >
                     <span class="hidden sm:inline">Nombres Alternativos</span>
-                    <span class="sm:hidden">+ Nombres</span>
+                    <span class="inline sm:hidden">+ Nombres</span>
                 </button>
             </div>
             <div class="w-full">
@@ -129,7 +170,7 @@
               class="w-full bg-indigo-600 text-white py-4 px-4 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md whitespace-nowrap flex items-center justify-center gap-2"
             >
                 <span class="hidden sm:inline">Consultar Datos</span>
-                <span class="sm:hidden">Consultar</span>
+                <span class="inline sm:hidden">Consultar</span>
             </button>
             </div>
         </div>
@@ -156,14 +197,13 @@
         </div>
     </div>
     
-    <!-- Contenedor para las notificaciones -->
     <div id="notification" class="notification"></div>
 
     <script>
+    document.addEventListener('DOMContentLoaded', function() {
       const fatherLastNameInput = document.getElementById('fatherLastName');
       const motherLastNameInput = document.getElementById('motherLastName');
       const nameInput = document.getElementById('nameInput');
-      const limit = 10; // Default value
       const generateButton = document.getElementById('generateButton');
       const resultsContainer = document.getElementById('resultsContainer');
       const resultsList = document.getElementById('resultsList');
@@ -171,6 +211,10 @@
       const errorContainer = document.getElementById('errorContainer');
       const errorMessage = document.getElementById('errorMessage');
       const consultButton = document.getElementById('consultButton');
+      const nameDropdown = document.getElementById('nameDropdown');
+      
+      const limit = 10;
+      let currentCandidates = [];
 
       // Función para mostrar errores
       function showError(message) {
@@ -289,14 +333,12 @@
         }
       } 
 
-
-        // consultButton on click
-        consultButton.addEventListener('click', consultarDados);
+      consultButton.addEventListener('click', consultarDados);
         
-        let debounceTimer;
+      let debounceTimer;
 
-        // Función para validar los campos
-        function validateFields() {
+      // Función para validar los campos
+      function validateFields() {
             const fatherLastName = fatherLastNameInput.value.trim();
             const motherLastName = motherLastNameInput.value.trim();
             const name = nameInput.value.trim();
@@ -318,86 +360,172 @@
             return true;
         }
 
-        // Función para capitalizar nombres propios
-        function formatName(name) {
+      // Función para capitalizar nombres propios
+      function formatName(name) {
             return name.toLowerCase()
                 .split(' ')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
         }
+        
+      // Nueva función para actualizar el dropdown personalizado
+      function updateDropdown(candidates) {
+          console.log('Actualizando dropdown con candidatos:', candidates);
+          
+          try {
+              // Verificar que el elemento dropdown existe
+              if (!nameDropdown) {
+                  console.error('Error: No se encontró el elemento nameDropdown');
+                  return;
+              }
+              
+              // Limpiar el dropdown
+              nameDropdown.innerHTML = '';
+              
+              if (!candidates || candidates.length === 0) {
+                  console.log('No hay candidatos, ocultando dropdown');
+                  nameDropdown.classList.add('hidden');
+                  return;
+              }
 
-        // Manejar clic en el botón de generar
-        generateButton.addEventListener('click', () => {
-            if (!validateFields()) return;
-            
-            const name = nameInput.value.trim();
-            const fatherLastName = fatherLastNameInput.value.trim();
-            const motherLastName = motherLastNameInput.value.trim();
-            
-            // Mostrar indicador de carga
-            loadingIndicator.classList.remove('hidden');
-            resultsContainer.classList.add('hidden');
-            errorContainer.classList.add('hidden');
-            
-            // Llamar a la API para generar variantes del nombre
-            fetch('/api/generate-names-mock', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ name, limit })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Error al generar las variantes del nombre');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Formatear apellidos
-                const formattedFatherLastName = formatName(fatherLastName);
-                const formattedMotherLastName = formatName(motherLastName);
-                
-                // Limpiar la tabla
-                resultsTableBody.innerHTML = '';
-                
-                // Agregar cada candidato a la tabla
-                data.candidates.forEach((candidate, index) => {
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-gray-50 transition-colors';
-                    
-                    row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${candidate}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formattedFatherLastName}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formattedMotherLastName}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button 
-                                onclick="consultarDados(this)"
-                                data-names="${candidate}"
-                                data-father-lastname="${formattedFatherLastName}"
-                                data-mother-lastname="${formattedMotherLastName}"
-                                class="text-indigo-600 hover:text-indigo-900"
-                            >
-                                Consultar
-                            </button>
-                        </td>
-                    `;
-                    
-                    resultsTableBody.appendChild(row);
-                });
-                
-                // Mostrar los resultados
-                resultsContainer.classList.remove('hidden');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Error al generar las variantes del nombre. Por favor, intente nuevamente.');
-            })
-            .finally(() => {
-                loadingIndicator.classList.add('hidden');
-            });
-        });   
+              // Agregar los candidatos al dropdown
+              candidates.forEach(candidate => {
+                  if (candidate) {
+                      const button = document.createElement('button');
+                      button.type = 'button';
+                      button.textContent = candidate;
+                      button.className = 'dropdown-item block w-full text-left py-2 px-4 hover:bg-gray-100 transition-colors duration-200';
+                      button.addEventListener('click', (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          nameInput.value = candidate;
+                          nameDropdown.classList.add('hidden');
+                      });
+                      nameDropdown.appendChild(button);
+                  }
+              });
+              
+              // Mostrar el dropdown
+              console.log('Mostrando dropdown con', candidates.length, 'elementos');
+              nameDropdown.style.display = 'block';
+              nameDropdown.classList.remove('hidden');
+              
+              // Verificar si el dropdown es visible
+              console.log('Estado del dropdown después de mostrar:', {
+                  display: window.getComputedStyle(nameDropdown).display,
+                  visibility: window.getComputedStyle(nameDropdown).visibility,
+                  opacity: window.getComputedStyle(nameDropdown).opacity,
+                  hidden: nameDropdown.classList.contains('hidden')
+              });
+              
+          } catch (error) {
+              console.error('Error en updateDropdown:', error);
+              if (nameDropdown) {
+                  nameDropdown.classList.add('hidden');
+              }
+          }
+      }
+
+      // Función para verificar si el nombre está en los candidatos
+      function isNameInCandidates(name) {
+          return currentCandidates.some(candidate => 
+              candidate && candidate.toLowerCase() === name.toLowerCase()
+          );
+      }
+
+      // Manejar el clic fuera del dropdown para ocultarlo
+      document.addEventListener('click', (event) => {
+          if (!nameInput.contains(event.target) && !nameDropdown.contains(event.target) && event.target !== generateButton) {
+              nameDropdown.classList.add('hidden');
+          }
+      });
+      
+      // Manejar el input para filtrar dinámicamente
+      nameInput.addEventListener('input', () => {
+        const value = nameInput.value.trim().toLowerCase();
+        if (value.length > 0 && currentCandidates.length > 0) {
+          const filtered = currentCandidates.filter(candidate => 
+            candidate && candidate.toLowerCase().includes(value)
+          );
+          updateDropdown(filtered);
+        } else {
+          nameDropdown.classList.add('hidden');
+        }
+      });
+
+      // Manejar clic en el botón de generar
+      generateButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (!validateFields()) {
+              nameDropdown.classList.add('hidden');
+              return;
+          }
+
+          const name = nameInput.value.trim();
+          
+          // Verifica si el nombre ya está en la lista de candidatos y si la lista no está vacía
+          if (currentCandidates.length > 0 && isNameInCandidates(name)) {
+              console.log('Nombre existente, mostrando dropdown');
+              updateDropdown(currentCandidates);
+              return;
+          }
+
+          // Si el nombre no está en la lista, agregarlo y luego llamar a la API
+          if (!isNameInCandidates(name)) {
+              currentCandidates.unshift(name);
+              // Limitar a 10 candidatos
+              currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
+          }
+          
+          // Muestra el indicador de carga
+          loadingIndicator.classList.remove('hidden');
+          resultsContainer.classList.add('hidden');
+          errorContainer.classList.add('hidden');
+          nameDropdown.classList.add('hidden');
+
+          fetch('/api/generate-names-mock', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                  name: name,
+                  limit: limit 
+              })
+          })
+          .then(response => {
+              if (!response.ok) {
+                  throw new Error('Error al generar las variantes del nombre.');
+              }
+              return response.json();
+          })
+          .then(data => {
+              // Asegurarse de que data.candidates sea un array
+              if (!data.candidates || !Array.isArray(data.candidates)) {
+                  console.error('Formato de respuesta inesperado:', data);
+                  throw new Error('Formato de respuesta inesperado del servidor');
+              }
+              
+              // Filtrar candidatos de la API que no estén ya en la lista
+              const newCandidates = data.candidates.filter(c => c && !isNameInCandidates(c));
+              currentCandidates.unshift(...newCandidates);
+              currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
+
+              // Actualiza y muestra el dropdown
+              updateDropdown(currentCandidates);
+              
+              resultsContainer.classList.remove('hidden');
+              resultsList.innerHTML = ''; // Limpia resultados anteriores si los hubiera
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              showError('Error al generar las variantes del nombre. Por favor, intente nuevamente.');
+          })
+          .finally(() => {
+              loadingIndicator.classList.add('hidden');
+          });
+      });
+    });
     </script>
 </body>
 </html>
