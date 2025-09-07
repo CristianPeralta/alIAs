@@ -70,12 +70,45 @@ app.post('/api/generate-names', async (req, res) => {
         }
 
         const result = await response.json();
-        res.json(result);
+        const textArray = result.candidates[0].content.parts[0].text ?? "[]";
+        const names = JSON.parse(textArray);
+          
+        res.json({
+            name,
+            candidates: names,
+        });
         
     } catch (error) {
         console.error('Error in /api/generate-names:', error);
         res.status(500).json({ error: 'Error al procesar la solicitud' });
     }
+});
+
+// MOck endpoint to generate names
+app.post('/api/generate-names-mock', (req, res) => {
+    const { name, limit } = req.body;
+    
+    if (!name || !limit) {
+        return res.status(400).json({ error: 'Name and limit are required' });
+    }
+    
+    const names = [
+        "Jessica",
+        "Yesica",
+        "Yessica",
+        "Jéssica",
+        "Jesica",
+        "Jessika",
+        "Yesika",
+        "Jesyca",
+        "Jezica",
+        "Yezica"
+    ];
+    
+    res.json({
+        name,
+        candidates: names,
+    });
 });
 
 /**

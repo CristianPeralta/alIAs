@@ -276,11 +276,11 @@
 
                   // Definir campos a mostrar
                   const fields = [
-                      { key: 'tipoDocumento', label: 'Tipo de Documento' },
-                      { key: 'numeroDocumento', label: 'Número de Documento' },
+                      { key: 'nombres', label: 'Nombres' },
                       { key: 'apellidoPaterno', label: 'Apellido Paterno' },
                       { key: 'apellidoMaterno', label: 'Apellido Materno' },
-                      { key: 'nombres', label: 'Nombres' },
+                      { key: 'tipoDocumento', label: 'Tipo de Documento' },
+                      { key: 'numeroDocumento', label: 'Número de Documento' },
                       { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
                       { key: 'ubicacionEESS', label: 'Ubicación EESS' }
                   ];
@@ -383,7 +383,7 @@
         }
 
         // Función para manejar la generación de nombres
-        function generateNames() {
+        function generateFirstTuple() {
             if (!validateFields()) return;
             
             const fatherLastName = fatherLastNameInput.value.trim();
@@ -456,7 +456,7 @@
         function handleInput() {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
-                generateNames();
+                generateFirstTuple();
             }, 500);
         }
 
@@ -466,7 +466,7 @@
             
             // También validar al perder el foco
             input.addEventListener('blur', () => {
-                generateNames();
+                generateFirstTuple();
             });
             
             // También mantener el soporte para Enter
@@ -474,16 +474,85 @@
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     clearTimeout(debounceTimer);
-                    generateNames();
+                    generateFirstTuple();
                 }
             });
         });
-        
+
         // Manejar clic en el botón de generar
         generateButton.addEventListener('click', () => {
-            clearTimeout(debounceTimer);
-            generateNames();
+            if (!validateFields()) return;
+            
+            const name = nameInput.value.trim();
+            const limit = parseInt(limitInput.value, 10);
+            const fatherLastName = fatherLastNameInput.value.trim();
+            const motherLastName = motherLastNameInput.value.trim();
+            
+            // Mostrar indicador de carga
+            loadingIndicator.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+            errorContainer.classList.add('hidden');
+            
+            // Llamar a la API para generar variantes del nombre
+            fetch('/api/generate-names-mock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, limit })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al generar las variantes del nombre');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Formatear apellidos
+                const formattedFatherLastName = formatName(fatherLastName);
+                const formattedMotherLastName = formatName(motherLastName);
+                
+                // Limpiar la tabla
+                resultsTableBody.innerHTML = '';
+                
+                // Agregar cada candidato a la tabla
+                data.candidates.forEach((candidate, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50 transition-colors';
+                    
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${candidate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formattedFatherLastName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formattedMotherLastName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button 
+                                onclick="consultarDados(this)"
+                                data-names="${candidate}"
+                                data-father-lastname="${formattedFatherLastName}"
+                                data-mother-lastname="${formattedMotherLastName}"
+                                class="text-indigo-600 hover:text-indigo-900"
+                            >
+                                Consultar
+                            </button>
+                        </td>
+                    `;
+                    
+                    resultsTableBody.appendChild(row);
+                });
+                
+                // Mostrar los resultados
+                resultsContainer.classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Error al generar las variantes del nombre. Por favor, intente nuevamente.');
+            })
+            .finally(() => {
+                loadingIndicator.classList.add('hidden');
+            });
         });
+        
     </script>
 </body>
 </html>
