@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from "url";
 import fetch from 'node-fetch';
 import puppeteer from 'puppeteer';
+import Redis from 'ioredis';
 
 // Recreate __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +16,22 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// Redis client setup (optional). If Redis isn't available, the app will continue without cache.
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS || 60 * 60 * 24 * 7); // default 1 week
+let redis;
+try {
+  redis = new Redis(REDIS_URL, { lazyConnect: true });
+  // Attempt to connect on startup, but don't crash if it fails
+  redis.connect().then(() => {
+    console.log("Connected to Redis successfully");
+  }).catch((err) => {
+    console.warn("Redis connection failed. Caching will be disabled.", err?.message || err);
+  });
+} catch (e) {
+  console.warn("Redis client initialization failed. Caching will be disabled.", e?.message || e);
+}
 
 // Serve the main HTML files
 app.get('/', (req, res) => {
@@ -37,6 +54,23 @@ app.post('/api/generate-names', async (req, res) => {
         if (limit > 20) {
             return res.status(400).json({ error: 'Limit must be less than or equal to 20' });
         }
+        const modelId = 'gemini-2.5-flash-preview-05-20';
+        const version = 'v1';
+        const normalizedName = String(name).trim().toLowerCase();
+        const cacheKey = `names:${modelId}:${version}:${normalizedName}:${limit}`;
+
+        // 1) Try cache first
+        if (redis) {
+            try {
+                const cached = await redis.get(cacheKey);
+                if (cached) {
+                    const payload = JSON.parse(cached);
+                    return res.json(payload);
+                }
+            } catch (cacheErr) {
+                console.warn('Redis GET failed, proceeding without cache:', cacheErr?.message || cacheErr);
+            }
+        }
 
         const systemPrompt = "Eres un experto en onomástica, con un profundo conocimiento de nombres en Latinoamérica. Tu tarea es generar variaciones de nombres de persona que suenen lo más similar posible al nombre dado, priorizando la fonética y la ortografía común de la región. Evita las abreviaciones, acortamientos o nombres que, aunque relacionados, no compartan la misma pronunciación exacta (por ejemplo, para 'Cristian' evita 'Cris' y para 'Leonidas' evita 'León' o 'Leonardo'). La lista debe estar ordenada de las variaciones más comunes a las menos comunes y debe ser un arreglo de cadenas de texto en formato JSON. Considera los patrones como 'Yesica', 'Jessica', 'Jesika', 'Jezica', etc.";
         const userQuery = `Genera una lista de ${limit} variaciones de nombres que suenen o se escriban de manera similar a "${name}".`;
@@ -57,7 +91,7 @@ app.post('/api/generate-names', async (req, res) => {
             }
         };
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${process.env.API_KEY}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${process.env.API_KEY}`;
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -72,11 +106,21 @@ app.post('/api/generate-names', async (req, res) => {
         const result = await response.json();
         const textArray = result.candidates[0].content.parts[0].text ?? "[]";
         const names = JSON.parse(textArray);
-          
-        res.json({
+          const responseBody = {
             name,
             candidates: names,
-        });
+        };
+
+        // 2) Store in cache
+        if (redis) {
+            try {
+                await redis.set(cacheKey, JSON.stringify(responseBody), 'EX', CACHE_TTL_SECONDS);
+            } catch (cacheErr) {
+                console.warn('Redis SET failed, continuing without caching:', cacheErr?.message || cacheErr);
+            }
+        }
+
+        res.json(responseBody);
         
     } catch (error) {
         console.error('Error in /api/generate-names:', error);
@@ -266,5 +310,8 @@ app.listen(PORT, () => {
 });
 
 // TODO: Implmentar scrapear a otros sitios web, por ejemplo https://dniperu.com/buscar-dni-por-nombres-y-apellidos/
+// TODO: Implementar cache para los nombres generados
+// TODO: Implementar cache para los datos de la minsa
+// TODO: Implementar limiter para la cantidad de peticiones
 // TODO: Desplegar el proyecto a la nube
 // TODO: Agregar endpoints para consultar por DNI
