@@ -264,3 +264,7 @@ app.listen(PORT, () => {
     console.log(`Environment: ${process.env.ENV}`);
     console.log(`API Key: ${process.env.API_KEY}`);
 });
+
+// TODO: Implmentar scrapear a otros sitios web, por ejemplo https://dniperu.com/buscar-dni-por-nombres-y-apellidos/
+// TODO: Desplegar el proyecto a la nube
+// TODO: Agregar endpoints para consultar por DNI
