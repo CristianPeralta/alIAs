@@ -64,9 +64,6 @@
         .dropdown-item:hover {
             background-color: #f3f4f6;
         }
-        .hidden {
-            display: none !important;
-        }
         #nameDropdown {
             box-sizing: border-box;
             position: absolute;
@@ -384,6 +381,7 @@
               
               if (!candidates || candidates.length === 0) {
                   console.log('No hay candidatos, ocultando dropdown');
+                  nameDropdown.classList.remove('block');
                   nameDropdown.classList.add('hidden');
                   return;
               }
@@ -399,6 +397,7 @@
                           e.preventDefault();
                           e.stopPropagation();
                           nameInput.value = candidate;
+                          nameDropdown.classList.remove('block');
                           nameDropdown.classList.add('hidden');
                       });
                       nameDropdown.appendChild(button);
@@ -407,8 +406,12 @@
               
               // Mostrar el dropdown
               console.log('Mostrando dropdown con', candidates.length, 'elementos');
-              nameDropdown.style.display = 'block';
               nameDropdown.classList.remove('hidden');
+              nameDropdown.classList.add('block');
+              // Asegurar que no quede estilo inline previo que oculte el elemento
+              if (nameDropdown.style && nameDropdown.style.display) {
+                  nameDropdown.style.removeProperty('display');
+              }
               
               // Verificar si el dropdown es visible
               console.log('Estado del dropdown después de mostrar:', {
@@ -435,7 +438,8 @@
 
       // Manejar el clic fuera del dropdown para ocultarlo
       document.addEventListener('click', (event) => {
-          if (!nameInput.contains(event.target) && !nameDropdown.contains(event.target) && event.target !== generateButton) {
+          if (!nameInput.contains(event.target) && !nameDropdown.contains(event.target) && !generateButton.contains(event.target)) {
+              nameDropdown.classList.remove('block');
               nameDropdown.classList.add('hidden');
           }
       });
@@ -449,6 +453,7 @@
           );
           updateDropdown(filtered);
         } else {
+          nameDropdown.classList.remove('block');
           nameDropdown.classList.add('hidden');
         }
       });
@@ -457,6 +462,7 @@
       generateButton.addEventListener('click', (e) => {
           e.preventDefault();
           if (!validateFields()) {
+              nameDropdown.classList.remove('block');
               nameDropdown.classList.add('hidden');
               return;
           }
@@ -477,11 +483,13 @@
               currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
           }
           
+          // Mostrar inmediatamente el dropdown con los candidatos actuales
+          updateDropdown(currentCandidates);
+
           // Muestra el indicador de carga
           loadingIndicator.classList.remove('hidden');
           resultsContainer.classList.add('hidden');
           errorContainer.classList.add('hidden');
-          nameDropdown.classList.add('hidden');
 
           fetch('/api/generate-names-mock', {
               method: 'POST',

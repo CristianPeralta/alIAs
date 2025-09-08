@@ -213,12 +213,11 @@ app.post('/api/scrape-data', async (req, res) => {
             
             return data;
         });
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'No se encontraron datos' });
+        }
 
-        res.json({
-            success: true,
-            count: results.length,
-            data: results
-        });
+        res.json(results[0]);
         
     } catch (error) {
         console.error('Error in /api/scrape-data:', error);
