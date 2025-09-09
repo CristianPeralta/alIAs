@@ -310,7 +310,6 @@ app.listen(PORT, () => {
 });
 
 // TODO: Implmentar scrapear a otros sitios web, por ejemplo https://dniperu.com/buscar-dni-por-nombres-y-apellidos/
-// TODO: Implementar cache para los nombres generados
 // TODO: Implementar cache para los datos de la minsa
 // TODO: Implementar limiter para la cantidad de peticiones
 // TODO: Desplegar el proyecto a la nube
