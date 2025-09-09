@@ -35,11 +35,11 @@ try {
 
 // Serve the main HTML files
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'app.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/fullname', (req, res) => {
-    res.sendFile(path.join(__dirname, 'fullname.html'));
+app.get('/consult', (req, res) => {
+    res.sendFile(path.join(__dirname, 'consult.html'));
 });
 
 // API endpoint to handle name variations
