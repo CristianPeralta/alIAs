@@ -93,12 +93,11 @@
         <div id="resultsContainer" class="hidden">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Variaciones encontradas:</h2>
             <ol id="resultsList" class="result-list bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <!-- Los resultados se inyectarán aquí -->
+                <!-- The results will be injected here -->
             </ol>
         </div>
     </div>
     
-    <!-- Contenedor para las notificaciones -->
     <div id="notification" class="notification"></div>
 
     <script>
@@ -112,23 +111,21 @@
         const errorContainer = document.getElementById('errorContainer');
         const errorMessage = document.getElementById('errorMessage');
 
-        // Función para mostrar la notificación
         function showNotification(message) {
             notification.textContent = message;
             notification.classList.add('show');
             setTimeout(() => {
                 notification.classList.remove('show');
-            }, 3000); // La notificación desaparecerá después de 3 segundos
+            }, 3000);
         }
 
-        // Función para mostrar errores
         function showError(message) {
             console.error(message);
             errorMessage.textContent = message;
             errorContainer.classList.remove('hidden');
             setTimeout(() => {
                 errorContainer.classList.add('hidden');
-            }, 5000); // El error desaparecerá después de 5 segundos
+            }, 5000);
         }
 
         generateButton.addEventListener('click', async () => {
@@ -146,8 +143,7 @@
                 resultsContainer.classList.add('hidden');
                 return;
             }
-            
-            // Mostrar el indicador de carga
+
             resultsContainer.classList.add('hidden');
             loadingIndicator.classList.remove('hidden');
 
@@ -171,7 +167,7 @@
             };
             
             try {
-                const response = await fetch('/api/generate-names-mock', {
+                const response = await fetch('/api/generate-names', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, limit })
@@ -199,8 +195,7 @@
                         const saluteButton = document.createElement('button');
                         saluteButton.textContent = 'Saludar!';
                         saluteButton.classList.add('bg-green-500', 'text-white', 'px-3', 'py-1', 'rounded-full', 'text-sm', 'hover:bg-green-600', 'transition', 'duration-300');
-                        
-                        // Agregar el evento click al botón de saludar
+
                         saluteButton.addEventListener('click', () => {
                             showNotification(`¡Hola ${capitalizedItem} cómo estás?`);
                         });

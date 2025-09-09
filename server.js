@@ -128,7 +128,7 @@ app.post('/api/generate-names', async (req, res) => {
     }
 });
 let indexNames = 0;
-// MOck endpoint to generate names
+// Mock endpoint to generate names
 app.post('/api/generate-names-mock', (req, res) => {
     const { name, limit } = req.body;
     
@@ -277,7 +277,6 @@ app.post('/api/scrape-data', async (req, res) => {
     }
 });
 
-
 // Mock endpoint to scrape data from Minsa website.
 app.post('/api/scrape-data-mock', (req, res) => {
     const { fatherLastName, motherLastName, name } = req.body;
@@ -309,8 +308,8 @@ app.listen(PORT, () => {
     console.log(`API Key: ${process.env.API_KEY}`);
 });
 
-// TODO: Implmentar scrapear a otros sitios web, por ejemplo https://dniperu.com/buscar-dni-por-nombres-y-apellidos/
-// TODO: Implementar cache para los datos de la minsa
-// TODO: Implementar limiter para la cantidad de peticiones
-// TODO: Desplegar el proyecto a la nube
-// TODO: Agregar endpoints para consultar por DNI
+// TODO: Implement scraping data from other websites, for example https://dniperu.com/search-by-name-and-surname/
+// TODO: Implement caching for Minsa data
+// TODO: Implement rate limiter for the number of requests
+// TODO: Deploy to the cloud
+// TODO: Add endpoints for querying by DNI

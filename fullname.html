@@ -213,7 +213,7 @@
       const limit = 10;
       let currentCandidates = [];
 
-      // Función para mostrar errores
+      // Function to show errors
       function showError(message) {
         console.error(message);
         errorMessage.textContent = message;
@@ -223,7 +223,7 @@
         }, 5000);
       }
 
-      // Función para consultar datos adicionales
+      // Function to consult additional data
       async function consultarDados() {
         const names = nameInput.value.trim();
         const fatherLastName = fatherLastNameInput.value.trim();
@@ -234,14 +234,14 @@
             return;
           }
             
-        // Mostrar indicador de carga y limpiar resultados anteriores
+        // Show loading indicator and clear previous results
         errorContainer.classList.add('hidden');
         loadingIndicator.classList.remove('hidden');
         resultsContainer.classList.add('hidden');
         resultsList.innerHTML = '';
             
         try {
-          const response = await fetch('/api/scrape-data-mock', {
+          const response = await fetch('/api/scrape-data', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -256,7 +256,7 @@
           let html = '';
                 
           if (response.status === 404) {
-            // Mostrar mensaje cuando no se encuentran datos (404)
+            // Show message when no data is found (404)
             html = `
                 <div class="text-center py-6">
                     <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -270,7 +270,7 @@
             const data = await response.json();
             html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
-            // Definir campos a mostrar
+            // Define fields to show
             const fields = [
                 { key: 'nombres', label: 'Nombres' },
                 { key: 'apellidoPaterno', label: 'Apellido Paterno' },
@@ -316,7 +316,7 @@
                 </div>`;
           }
             
-          // Actualizar el contenedor de resultados
+          // Update the results container
           resultsList.innerHTML = html;
           resultsContainer.classList.remove('hidden');
         }
@@ -325,7 +325,7 @@
           showError('Error al cargar los datos. Por favor, inténtalo de nuevo.');
         }
         finally {
-          // Ocultar indicador de carga
+          // Hide loading indicator
           loadingIndicator.classList.add('hidden');
         }
       } 
@@ -334,7 +334,7 @@
         
       let debounceTimer;
 
-      // Función para validar los campos
+      // Function to validate the fields
       function validateFields() {
             const fatherLastName = fatherLastNameInput.value.trim();
             const motherLastName = motherLastNameInput.value.trim();
@@ -357,7 +357,7 @@
             return true;
         }
 
-      // Función para capitalizar nombres propios
+      // Function to capitalize proper names
       function formatName(name) {
             return name.toLowerCase()
                 .split(' ')
@@ -365,18 +365,16 @@
                 .join(' ');
         }
         
-      // Nueva función para actualizar el dropdown personalizado
+      // New function to update the custom dropdown
       function updateDropdown(candidates) {
-          console.log('Actualizando dropdown con candidatos:', candidates);
-          
           try {
-              // Verificar que el elemento dropdown existe
+              // Verify that the dropdown element exists
               if (!nameDropdown) {
                   console.error('Error: No se encontró el elemento nameDropdown');
                   return;
               }
               
-              // Limpiar el dropdown
+              // Clear the dropdown
               nameDropdown.innerHTML = '';
               
               if (!candidates || candidates.length === 0) {
@@ -386,7 +384,7 @@
                   return;
               }
 
-              // Agregar los candidatos al dropdown
+              // Add candidates to the dropdown
               candidates.forEach(candidate => {
                   if (candidate) {
                       const button = document.createElement('button');
@@ -404,23 +402,13 @@
                   }
               });
               
-              // Mostrar el dropdown
-              console.log('Mostrando dropdown con', candidates.length, 'elementos');
+              // Show the dropdown
               nameDropdown.classList.remove('hidden');
               nameDropdown.classList.add('block');
-              // Asegurar que no quede estilo inline previo que oculte el elemento
+              // Ensure that no inline style previously hid the element
               if (nameDropdown.style && nameDropdown.style.display) {
                   nameDropdown.style.removeProperty('display');
               }
-              
-              // Verificar si el dropdown es visible
-              console.log('Estado del dropdown después de mostrar:', {
-                  display: window.getComputedStyle(nameDropdown).display,
-                  visibility: window.getComputedStyle(nameDropdown).visibility,
-                  opacity: window.getComputedStyle(nameDropdown).opacity,
-                  hidden: nameDropdown.classList.contains('hidden')
-              });
-              
           } catch (error) {
               console.error('Error en updateDropdown:', error);
               if (nameDropdown) {
@@ -429,14 +417,14 @@
           }
       }
 
-      // Función para verificar si el nombre está en los candidatos
+      // Function to verify if the name is in the candidates
       function isNameInCandidates(name) {
           return currentCandidates.some(candidate => 
               candidate && candidate.toLowerCase() === name.toLowerCase()
           );
       }
 
-      // Manejar el clic fuera del dropdown para ocultarlo
+      // Handle click outside the dropdown to hide it
       document.addEventListener('click', (event) => {
           if (!nameInput.contains(event.target) && !nameDropdown.contains(event.target) && !generateButton.contains(event.target)) {
               nameDropdown.classList.remove('block');
@@ -444,7 +432,7 @@
           }
       });
       
-      // Manejar el input para filtrar dinámicamente
+      // Handle input to filter dynamically
       nameInput.addEventListener('input', () => {
         const value = nameInput.value.trim().toLowerCase();
         if (value.length > 0 && currentCandidates.length > 0) {
@@ -458,7 +446,7 @@
         }
       });
 
-      // Manejar clic en el botón de generar
+      // Handle click on the generate button
       generateButton.addEventListener('click', (e) => {
           e.preventDefault();
           if (!validateFields()) {
@@ -469,24 +457,24 @@
 
           const name = nameInput.value.trim();
           
-          // Verifica si el nombre ya está en la lista de candidatos y si la lista no está vacía
+          // Verify if the name is already in the list of candidates and if the list is not empty
           if (currentCandidates.length > 0 && isNameInCandidates(name)) {
-              console.log('Nombre existente, mostrando dropdown');
+              console.log('Name already exists, showing dropdown');
               updateDropdown(currentCandidates);
               return;
           }
 
-          // Si el nombre no está en la lista, agregarlo y luego llamar a la API
+          // If the name is not in the list, add it and then call the API
           if (!isNameInCandidates(name)) {
               currentCandidates.unshift(name);
-              // Limitar a 10 candidatos
+              // Limit to 10 candidates
               currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
           }
           
-          // Mostrar inmediatamente el dropdown con los candidatos actuales
+          // Show the dropdown with the current candidates
           updateDropdown(currentCandidates);
 
-          // Muestra el indicador de carga
+          // Show the loading indicator
           loadingIndicator.classList.remove('hidden');
           resultsContainer.classList.add('hidden');
           errorContainer.classList.add('hidden');
@@ -508,22 +496,22 @@
               return response.json();
           })
           .then(data => {
-              // Asegurarse de que data.candidates sea un array
+              // Ensure data.candidates is an array
               if (!data.candidates || !Array.isArray(data.candidates)) {
                   console.error('Formato de respuesta inesperado:', data);
                   throw new Error('Formato de respuesta inesperado del servidor');
               }
               
-              // Filtrar candidatos de la API que no estén ya en la lista
+              // Filter candidates from the API that are not already in the list
               const newCandidates = data.candidates.filter(c => c && !isNameInCandidates(c));
               currentCandidates.unshift(...newCandidates);
               currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
 
-              // Actualiza y muestra el dropdown
+              // Update and show the dropdown
               updateDropdown(currentCandidates);
               
               resultsContainer.classList.remove('hidden');
-              resultsList.innerHTML = ''; // Limpia resultados anteriores si los hubiera
+              resultsList.innerHTML = ''; // Clear previous results if any
           })
           .catch(error => {
               console.error('Error:', error);
@@ -535,9 +523,9 @@
       });
     });
 
-    // TODO: Tener en cuenta en caso de que la persona tenga mas de un nombre
-    // TODO: Analizar la situacion de crear inputs adicionales para nombres adicionales dinamicamente
-    // TODO: Analizar la situacion de generar alternativas para cada nombre individualment
+    // TODO: Consider the case where a person has more than one name
+    // TODO: Analyze the situation of dynamically creating additional inputs for additional names
+    // TODO: Analyze the situation of generating alternatives for each individual name individually
     </script>
 </body>
 </html>
