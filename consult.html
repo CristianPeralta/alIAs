@@ -212,6 +212,7 @@
       
       const limit = 10;
       let currentCandidates = [];
+      let isGenerating = false; // Estado de carga para /api/generate-names
 
       // Function to show errors
       function showError(message) {
@@ -373,7 +374,14 @@
                   console.error('Error: No se encontró el elemento nameDropdown');
                   return;
               }
-              
+
+              // Si estamos generando, ocultar dropdown y no continuar
+              if (isGenerating) {
+                  nameDropdown.classList.remove('block');
+                  nameDropdown.classList.add('hidden');
+                  return;
+              }
+
               // Clear the dropdown
               nameDropdown.innerHTML = '';
               
@@ -434,6 +442,13 @@
       
       // Handle input to filter dynamically
       nameInput.addEventListener('input', () => {
+        // Si está cargando, no mostrar el dropdown
+        if (isGenerating) {
+          nameDropdown.classList.remove('block');
+          nameDropdown.classList.add('hidden');
+          return;
+        }
+
         const value = nameInput.value.trim().toLowerCase();
         if (value.length > 0 && currentCandidates.length > 0) {
           const filtered = currentCandidates.filter(candidate => 
@@ -470,9 +485,10 @@
               // Limit to 10 candidates
               currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
           }
-          
-          // Show the dropdown with the current candidates
-          updateDropdown(currentCandidates);
+          // Entramos en estado de carga: ocultar dropdown
+          isGenerating = true;
+          nameDropdown.classList.remove('block');
+          nameDropdown.classList.add('hidden');
 
           // Show the loading indicator
           loadingIndicator.classList.remove('hidden');
@@ -506,12 +522,12 @@
               const newCandidates = data.candidates.filter(c => c && !isNameInCandidates(c));
               currentCandidates.unshift(...newCandidates);
               currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
-
-              // Update and show the dropdown
-              updateDropdown(currentCandidates);
               
               resultsContainer.classList.remove('hidden');
               resultsList.innerHTML = ''; // Clear previous results if any
+              // Finalizado con éxito: permitir mostrar dropdown y actualizarlo
+              isGenerating = false;
+              updateDropdown(currentCandidates);
           })
           .catch(error => {
               console.error('Error:', error);
@@ -519,6 +535,8 @@
           })
           .finally(() => {
               loadingIndicator.classList.add('hidden');
+              // Aseguramos que el estado no quede bloqueado
+              isGenerating = false;
           });
       });
     });
