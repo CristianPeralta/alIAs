@@ -14,8 +14,7 @@ export default async function handler(req, res) {
       res.status(400).json({ error: 'Father lastname, mother lastname and name are required' });
       return;
     }
-
-    const executablePath = await chromium.executablePath;
+    const executablePath = await chromium.executablePath();
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
