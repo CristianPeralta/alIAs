@@ -308,6 +308,8 @@ app.listen(PORT, () => {
     console.log(`API Key: ${process.env.API_KEY}`);
 });
 
+// TODO: Replace 'Ñ' with 'Ð' for 'minsa' endpoint, both for scraping and returning data.
+// TODO: Implement error handling for the limit quote error from the GEMINI API
 // TODO: Implement scraping data from other websites, for example https://dniperu.com/search-by-name-and-surname/
 // TODO: Implement caching for Minsa data
 // TODO: Implement rate limiter for the number of requests
