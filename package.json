@@ -4,15 +4,20 @@
   "description": "Simple Express server for alIAs app",
   "main": "server.js",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
   "dependencies": {
+    "puppeteer": "^22.15.0",
+    "@upstash/redis": "^1.31.6",
+    "@sparticuz/chromium": "^131.0.0",
     "dotenv": "17.2.2",
     "express": "4.21.2",
-    "ioredis": "5.7.0",
     "node-fetch": "3.3.2",
-    "puppeteer": "24.19.0"
+    "puppeteer-core": "^22.15.0"
   }
 }

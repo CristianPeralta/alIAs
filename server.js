@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from "url";
 import fetch from 'node-fetch';
 import puppeteer from 'puppeteer';
-import Redis from 'ioredis';
+import { Redis } from '@upstash/redis';
 
 // Recreate __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -17,20 +17,27 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// API Key
+const API_KEY = process.env.API_KEY;
+
+// Environment
+const ENV = process.env.ENV;
+
 // Redis client setup (optional). If Redis isn't available, the app will continue without cache.
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS || 60 * 60 * 24 * 7); // default 1 week
+const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+
 let redis;
 try {
-  redis = new Redis(REDIS_URL, { lazyConnect: true });
-  // Attempt to connect on startup, but don't crash if it fails
-  redis.connect().then(() => {
-    console.log("Connected to Redis successfully");
-  }).catch((err) => {
-    console.warn("Redis connection failed. Caching will be disabled.", err?.message || err);
-  });
+  if (UPSTASH_REDIS_REST_URL && UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({ url: UPSTASH_REDIS_REST_URL, token: UPSTASH_REDIS_REST_TOKEN });
+    console.log("Upstash Redis client configured successfully");
+  } else {
+    console.warn("Upstash Redis env vars not set. Caching will be disabled.");
+  }
 } catch (e) {
-  console.warn("Redis client initialization failed. Caching will be disabled.", e?.message || e);
+  console.warn("Upstash Redis client initialization failed. Caching will be disabled.", e?.message || e);
 }
 
 // Serve the main HTML files
@@ -59,13 +66,12 @@ app.post('/api/generate-names', async (req, res) => {
         const normalizedName = String(name).trim().toLowerCase();
         const cacheKey = `names:${modelId}:${version}:${normalizedName}:${limit}`;
 
-        // 1) Try cache first
+        // 1) Try cache first (Upstash REST)
         if (redis) {
             try {
                 const cached = await redis.get(cacheKey);
                 if (cached) {
-                    const payload = JSON.parse(cached);
-                    return res.json(payload);
+                    return res.json(cached);
                 }
             } catch (cacheErr) {
                 console.warn('Redis GET failed, proceeding without cache:', cacheErr?.message || cacheErr);
@@ -91,7 +97,7 @@ app.post('/api/generate-names', async (req, res) => {
             }
         };
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${process.env.API_KEY}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${API_KEY}`;
         
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -111,10 +117,10 @@ app.post('/api/generate-names', async (req, res) => {
             candidates: names,
         };
 
-        // 2) Store in cache
+        // 2) Store in cache (Upstash REST)
         if (redis) {
             try {
-                await redis.set(cacheKey, JSON.stringify(responseBody), 'EX', CACHE_TTL_SECONDS);
+                await redis.set(cacheKey, responseBody, { ex: CACHE_TTL_SECONDS });
             } catch (cacheErr) {
                 console.warn('Redis SET failed, continuing without caching:', cacheErr?.message || cacheErr);
             }
@@ -196,9 +202,8 @@ app.post('/api/scrape-data', async (req, res) => {
             return res.status(400).json({ error: 'Father lastname, mother lastname and name are required' });
         }
 
-        // Launch browser in headless mode
         browser = await puppeteer.launch({
-            headless: true,
+            headless: 'new',
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
         
@@ -304,8 +309,8 @@ app.post('/api/scrape-data-mock', (req, res) => {
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
-    console.log(`Environment: ${process.env.ENV}`);
-    console.log(`API Key: ${process.env.API_KEY}`);
+    console.log(`Environment: ${ENV}`);
+    console.log(`API Key: ${API_KEY}`);
 });
 
 // TODO: Implement scraping data from other websites, for example https://dniperu.com/search-by-name-and-surname/
