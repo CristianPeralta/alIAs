@@ -110,7 +110,8 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <div class="flex-grow flex items-center justify-center p-4">
     <div class="container bg-white p-8 rounded-xl shadow-lg w-full">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Buscar persona por nombre</h1>
         <p class="text-gray-600 text-center mb-6">
@@ -196,6 +197,25 @@
     </div>
     
     <div id="notification" class="notification"></div>
+    
+    </div> <!-- Close flex-grow container -->
+    
+    <footer class="w-full bg-gradient-to-r from-indigo-50 to-blue-50 border-t border-gray-200 py-6">
+        <div class="max-w-3xl mx-auto px-4">
+            <div class="text-center space-y-2">
+                <p class="text-gray-600 text-sm">
+                    Proyecto inspirado en ayudar a mi censista favorita 💜
+                </p>
+                <p class="text-gray-600 text-sm">
+                    Este proyecto es open source; si deseas aportar o dejar sugerencias, puedes escribirme al <a class="text-blue-600 hover:underline" href="mailto:krix0s.es@gmail.com">krix0s.es@gmail.com</a>.
+                </p>
+                <p class="text-gray-500 text-xs">
+                    &copy; 2025 AlIAs. Licensed under the GNU GPL v3 License.
+                </p>
+            </div>
+        </div>
+    </footer>
+</body>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
