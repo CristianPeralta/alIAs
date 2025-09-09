@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Nombres con IA</title>
+    <link rel="icon" href="/favicon.ico">
+    <title>Generador de Nombres Completos con IA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -11,11 +12,12 @@
             background-color: #f3f4f6;
         }
         .container {
-            max-width: 600px;
+            max-width: 800px;
         }
         .input-group {
             display: flex;
             align-items: center;
+            gap: 0.5rem;
         }
         .input-group input {
             flex-grow: 1;
@@ -40,37 +42,135 @@
         .notification.show {
             opacity: 1;
         }
+        .name-section {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .name-input {
+            flex: 1;
+        }
+        .details-row {
+            display: none;
+        }
+        .details-row.visible {
+            display: table-row;
+        }
+        .details-content {
+            padding: 1rem;
+            background-color: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+        /* Style for dropdown items */
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
+        }
+        #nameDropdown {
+            box-sizing: border-box;
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          max-height: 15rem;
+          overflow-y: auto;
+          margin-top: 0.25rem;
+        }
+        
+        #nameDropdown button {
+          display: block;
+          width: 100%;
+          text-align: left;
+          padding: 0.5rem 1rem;
+          border: none;
+          background: none;
+          cursor: pointer;
+        }
+        
+        #nameDropdown button:hover {
+          background-color: #f3f4f6;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #93c5fd;
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div class="container bg-white p-8 rounded-xl shadow-lg w-full">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Generador de Nombres con IA</h1>
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Buscar persona por nombre</h1>
         <p class="text-gray-600 text-center mb-6">
-            Ingresa un nombre y la IA generará variaciones de escritura, fonética y homónimos comunes.
+            Obten datos de una persona en Perú (DNI, nombre, apellido, fecha de nacimiento, ubicación, etc).
         </p>
+        
         <div class="space-y-4 mb-6">
-            <div class="input-group space-x-2">
-                <input 
-                    id="nameInput" 
-                    type="text" 
-                    placeholder="Ej. Jessica"
-                    class="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <input
-                    id="limitInput"
-                    type="number"
-                    value="10"
-                    min="1"
-                    class="w-24 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
-                    title="Cantidad de variaciones a generar"
-                />
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="fatherLastName" class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno</label>
+                    <input 
+                        id="fatherLastName" 
+                        type="text" 
+                        placeholder="Ej. Pérez"
+                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <div>
+                    <label for="motherLastName" class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno</label>
+                    <input 
+                        id="motherLastName" 
+                        type="text" 
+                        placeholder="Ej. Gómez"
+                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
             </div>
-            <button 
-                id="generateButton" 
-                class="w-full bg-indigo-600 text-white p-3 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md"
+            
+            <div class="name-section relative">
+                <div class="name-input w-full relative">
+                    <label for="nameInput" class="block text-sm font-medium text-gray-700 mb-1">Nombres</label>
+                    <div class="relative">
+                        <input 
+                            id="nameInput" 
+                            type="text" 
+                            placeholder="Ej. Juan Carlos"
+                            class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10"
+                            autocomplete="off"
+                        />
+                        <div id="nameDropdown" class="absolute w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 hidden"></div>
+                    </div>
+                </div>
+                <button 
+                    id="generateButton" 
+                    class="h-[42px] bg-blue-600 text-white px-4 rounded-xl font-semibold hover:bg-blue-700 transition duration-300 shadow-md whitespace-nowrap flex items-center justify-center gap-2"
+                    alt="Generar Nombres Alternativos"
+                >
+                    <span class="hidden sm:inline">Nombres Alternativos</span>
+                    <span class="inline sm:hidden">+ Nombres</span>
+                </button>
+            </div>
+            <div class="w-full">
+              <button 
+              id="consultButton" 
+              class="w-full bg-indigo-600 text-white py-4 px-4 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md whitespace-nowrap flex items-center justify-center gap-2"
             >
-                Generar
+                <span class="hidden sm:inline">Consultar Datos</span>
+                <span class="inline sm:hidden">Consultar</span>
             </button>
+            </div>
         </div>
 
         <div id="loadingIndicator" class="hidden text-center text-indigo-600 font-semibold my-4">
@@ -90,136 +190,361 @@
             </div>
         </div>
 
-        <div id="resultsContainer" class="hidden">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">Variaciones encontradas:</h2>
-            <ol id="resultsList" class="result-list bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <!-- The results will be injected here -->
-            </ol>
+        <div id="resultsContainer" class="hidden space-y-4">
+          <div id="resultsList"></div>
         </div>
     </div>
     
     <div id="notification" class="notification"></div>
 
     <script>
-        const nameInput = document.getElementById('nameInput');
-        const limitInput = document.getElementById('limitInput');
-        const generateButton = document.getElementById('generateButton');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const resultsList = document.getElementById('resultsList');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const notification = document.getElementById('notification');
-        const errorContainer = document.getElementById('errorContainer');
-        const errorMessage = document.getElementById('errorMessage');
+    document.addEventListener('DOMContentLoaded', function() {
+      const fatherLastNameInput = document.getElementById('fatherLastName');
+      const motherLastNameInput = document.getElementById('motherLastName');
+      const nameInput = document.getElementById('nameInput');
+      const generateButton = document.getElementById('generateButton');
+      const resultsContainer = document.getElementById('resultsContainer');
+      const resultsList = document.getElementById('resultsList');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const errorContainer = document.getElementById('errorContainer');
+      const errorMessage = document.getElementById('errorMessage');
+      const consultButton = document.getElementById('consultButton');
+      const nameDropdown = document.getElementById('nameDropdown');
+      
+      const limit = 10;
+      let currentCandidates = [];
+      let isGenerating = false; // Estado de carga para /api/generate-names
 
-        function showNotification(message) {
-            notification.textContent = message;
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
+      // Function to show errors
+      function showError(message) {
+        console.error(message);
+        errorMessage.textContent = message;
+        errorContainer.classList.remove('hidden');
+        setTimeout(() => {
+            errorContainer.classList.add('hidden');
+        }, 5000);
+      }
+
+      // Function to consult additional data
+      async function consultarDados() {
+        const names = nameInput.value.trim();
+        const fatherLastName = fatherLastNameInput.value.trim();
+        const motherLastName = motherLastNameInput.value.trim();
+            
+        if (!names || !fatherLastName || !motherLastName) {
+          showError('Por favor, completa todos los campos');
+            return;
+          }
+            
+        // Show loading indicator and clear previous results
+        errorContainer.classList.add('hidden');
+        loadingIndicator.classList.remove('hidden');
+        resultsContainer.classList.add('hidden');
+        resultsList.innerHTML = '';
+            
+        try {
+          const response = await fetch('/api/scrape-data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: names,
+                fatherLastName,
+                motherLastName
+              })
+            });
+                
+          let html = '';
+                
+          if (response.status === 404) {
+            // Show message when no data is found (404)
+            html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
+                </div>`;
+          }
+          else if (response.ok) {
+            const data = await response.json();
+            html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
+
+            // Define fields to show
+            const fields = [
+                { key: 'nombres', label: 'Nombres' },
+                { key: 'apellidoPaterno', label: 'Apellido Paterno' },
+                { key: 'apellidoMaterno', label: 'Apellido Materno' },
+                { key: 'tipoDocumento', label: 'Tipo de Documento' },
+                { key: 'numeroDocumento', label: 'Número de Documento' },
+                { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
+                { key: 'ubicacionEESS', label: 'Ubicación EESS' }
+            ];
+
+            if (data) {
+              let hasData = false;
+              fields.forEach(field => {
+                if (data[field.key]) {
+                  hasData = true;
+                  html += `
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-sm font-medium text-gray-500">${field.label}:</div>
+                        <div class="col-span-2 text-sm text-gray-900 font-medium">${data[field.key]}</div>
+                    </div>`;
+                }
+              });
+                        
+              if (!hasData) {
+                html = `
+                  <div class="text-center py-6">
+                      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                      <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                  </div>`;
+                }
+            }
+          } else {
+            html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                </div>`;
+          }
+            
+          // Update the results container
+          resultsList.innerHTML = html;
+          resultsContainer.classList.remove('hidden');
         }
-
-        function showError(message) {
-            console.error(message);
-            errorMessage.textContent = message;
-            errorContainer.classList.remove('hidden');
-            setTimeout(() => {
-                errorContainer.classList.add('hidden');
-            }, 5000);
+        catch (error) {
+          console.error('Error al consultar datos:', error);
+          showError('Error al cargar los datos. Por favor, inténtalo de nuevo.');
         }
+        finally {
+          // Hide loading indicator
+          loadingIndicator.classList.add('hidden');
+        }
+      } 
 
-        generateButton.addEventListener('click', async () => {
+      consultButton.addEventListener('click', consultarDados);
+        
+      let debounceTimer;
+
+      // Function to validate the fields
+      function validateFields() {
+            const fatherLastName = fatherLastNameInput.value.trim();
+            const motherLastName = motherLastNameInput.value.trim();
             const name = nameInput.value.trim();
-            const limit = parseInt(limitInput.value, 10);
+            
+            // Validaciones
+            if (!fatherLastName || !motherLastName) {
+                errorContainer.classList.remove('hidden');
+                errorMessage.textContent = 'Por favor ingresa ambos apellidos';
+                return false;
+            }
 
             if (!name) {
-                showError('Por favor ingresa un nombre');
-                resultsContainer.classList.add('hidden');
-                return;
+                errorContainer.classList.remove('hidden');
+                errorMessage.textContent = 'Por favor ingresa al menos un nombre';
+                return false;
             }
             
-            if (isNaN(limit) || limit < 1) {
-                showError('El número de variaciones debe ser mayor a 0');
-                resultsContainer.classList.add('hidden');
-                return;
-            }
+            errorContainer.classList.add('hidden');
+            return true;
+        }
 
-            resultsContainer.classList.add('hidden');
-            loadingIndicator.classList.remove('hidden');
+      // Function to capitalize proper names
+      function formatName(name) {
+            return name.toLowerCase()
+                .split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+        
+      // New function to update the custom dropdown
+      function updateDropdown(candidates) {
+          try {
+              // Verify that the dropdown element exists
+              if (!nameDropdown) {
+                  console.error('Error: No se encontró el elemento nameDropdown');
+                  return;
+              }
 
-            const systemPrompt = "Eres un experto en onomástica, con un profundo conocimiento de nombres en Latinoamérica. Tu tarea es generar variaciones de nombres de persona que suenen lo más similar posible al nombre dado, priorizando la fonética y la ortografía común de la región. Evita las abreviaciones, acortamientos o nombres que, aunque relacionados, no compartan la misma pronunciación exacta (por ejemplo, para 'Cristian' evita 'Cris' y para 'Leonidas' evita 'León' o 'Leonardo'). La lista debe estar ordenada de las variaciones más comunes a las menos comunes y debe ser un arreglo de cadenas de texto en formato JSON. Considera los patrones como 'Yesica', 'Jessica', 'Jesika', 'Jezica', etc.";
-            const userQuery = `Genera una lista de ${limit} variaciones de nombres que suenen o se escriban de manera similar a "${name}".`;
+              // Si estamos generando, ocultar dropdown y no continuar
+              if (isGenerating) {
+                  nameDropdown.classList.remove('block');
+                  nameDropdown.classList.add('hidden');
+                  return;
+              }
 
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: {
-                    parts: [{ text: systemPrompt }]
-                },
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        items: {
-                            type: "STRING"
-                        }
-                    }
-                }
-            };
-            
-            try {
-                const response = await fetch('/api/generate-names', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, limit })
-                });
+              // Clear the dropdown
+              nameDropdown.innerHTML = '';
+              
+              if (!candidates || candidates.length === 0) {
+                  console.log('No hay candidatos, ocultando dropdown');
+                  nameDropdown.classList.remove('block');
+                  nameDropdown.classList.add('hidden');
+                  return;
+              }
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Error en la API (${response.status}): ${errorText || response.statusText}`);
-                }
+              // Add candidates to the dropdown
+              candidates.forEach(candidate => {
+                  if (candidate) {
+                      const button = document.createElement('button');
+                      button.type = 'button';
+                      button.textContent = candidate;
+                      button.className = 'dropdown-item block w-full text-left py-2 px-4 hover:bg-gray-100 transition-colors duration-200';
+                      button.addEventListener('click', (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          nameInput.value = candidate;
+                          nameDropdown.classList.remove('block');
+                          nameDropdown.classList.add('hidden');
+                      });
+                      nameDropdown.appendChild(button);
+                  }
+              });
+              
+              // Show the dropdown
+              nameDropdown.classList.remove('hidden');
+              nameDropdown.classList.add('block');
+              // Ensure that no inline style previously hid the element
+              if (nameDropdown.style && nameDropdown.style.display) {
+                  nameDropdown.style.removeProperty('display');
+              }
+          } catch (error) {
+              console.error('Error en updateDropdown:', error);
+              if (nameDropdown) {
+                  nameDropdown.classList.add('hidden');
+              }
+          }
+      }
 
-                const result = await response.json();
-                const variations = result.candidates;
-                
-                if (variations) {
-                    resultsList.innerHTML = '';
-                    variations.forEach(item => {
-                        const capitalizedItem = item.charAt(0).toUpperCase() + item.slice(1);
-                        
-                        const listItem = document.createElement('li');
-                        listItem.classList.add('flex', 'justify-between', 'items-center', 'mb-1', 'text-gray-800');
+      // Function to verify if the name is in the candidates
+      function isNameInCandidates(name) {
+          return currentCandidates.some(candidate => 
+              candidate && candidate.toLowerCase() === name.toLowerCase()
+          );
+      }
 
-                        const nameSpan = document.createElement('span');
-                        nameSpan.textContent = capitalizedItem;
+      // Handle click outside the dropdown to hide it
+      document.addEventListener('click', (event) => {
+          if (!nameInput.contains(event.target) && !nameDropdown.contains(event.target) && !generateButton.contains(event.target)) {
+              nameDropdown.classList.remove('block');
+              nameDropdown.classList.add('hidden');
+          }
+      });
+      
+      // Handle input to filter dynamically
+      nameInput.addEventListener('input', () => {
+        // Si está cargando, no mostrar el dropdown
+        if (isGenerating) {
+          nameDropdown.classList.remove('block');
+          nameDropdown.classList.add('hidden');
+          return;
+        }
 
-                        const saluteButton = document.createElement('button');
-                        saluteButton.textContent = 'Saludar!';
-                        saluteButton.classList.add('bg-green-500', 'text-white', 'px-3', 'py-1', 'rounded-full', 'text-sm', 'hover:bg-green-600', 'transition', 'duration-300');
+        const value = nameInput.value.trim().toLowerCase();
+        if (value.length > 0 && currentCandidates.length > 0) {
+          const filtered = currentCandidates.filter(candidate => 
+            candidate && candidate.toLowerCase().includes(value)
+          );
+          updateDropdown(filtered);
+        } else {
+          nameDropdown.classList.remove('block');
+          nameDropdown.classList.add('hidden');
+        }
+      });
 
-                        saluteButton.addEventListener('click', () => {
-                            showNotification(`¡Hola ${capitalizedItem} cómo estás?`);
-                        });
+      // Handle click on the generate button
+      generateButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (!validateFields()) {
+              nameDropdown.classList.remove('block');
+              nameDropdown.classList.add('hidden');
+              return;
+          }
 
-                        listItem.appendChild(nameSpan);
-                        listItem.appendChild(saluteButton);
-                        resultsList.appendChild(listItem);
-                    });
-                    resultsContainer.classList.remove('hidden');
-                } else {
-                    const errorMsg = "No se encontraron resultados válidos en la respuesta de la API.";
-                    showError(errorMsg);
-                    resultsContainer.classList.remove('hidden');
-                }
+          const name = nameInput.value.trim();
+          
+          // Verify if the name is already in the list of candidates and if the list is not empty
+          if (currentCandidates.length > 0 && isNameInCandidates(name)) {
+              console.log('Name already exists, showing dropdown');
+              updateDropdown(currentCandidates);
+              return;
+          }
 
-            } catch (error) {
-                const errorMsg = `Error al generar variaciones: ${error.message}`;
-                showError(errorMsg);
-                resultsList.innerHTML = '';
-                resultsContainer.classList.add('hidden');
-            } finally {
-                loadingIndicator.classList.add('hidden');
-            }
-        });
+          // If the name is not in the list, add it and then call the API
+          if (!isNameInCandidates(name)) {
+              currentCandidates.unshift(name);
+              // Limit to 10 candidates
+              currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
+          }
+          // Entramos en estado de carga: ocultar dropdown
+          isGenerating = true;
+          nameDropdown.classList.remove('block');
+          nameDropdown.classList.add('hidden');
+
+          // Show the loading indicator
+          loadingIndicator.classList.remove('hidden');
+          resultsContainer.classList.add('hidden');
+          errorContainer.classList.add('hidden');
+
+          fetch('/api/generate-names', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                  name: name,
+                  limit: limit 
+              })
+          })
+          .then(response => {
+              if (!response.ok) {
+                  throw new Error('Error al generar las variantes del nombre.');
+              }
+              return response.json();
+          })
+          .then(data => {
+              // Ensure data.candidates is an array
+              if (!data.candidates || !Array.isArray(data.candidates)) {
+                  console.error('Formato de respuesta inesperado:', data);
+                  throw new Error('Formato de respuesta inesperado del servidor');
+              }
+              
+              // Filter candidates from the API that are not already in the list
+              const newCandidates = data.candidates.filter(c => c && !isNameInCandidates(c));
+              currentCandidates.unshift(...newCandidates);
+              currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
+              
+              resultsContainer.classList.remove('hidden');
+              resultsList.innerHTML = ''; // Clear previous results if any
+              // Finalizado con éxito: permitir mostrar dropdown y actualizarlo
+              isGenerating = false;
+              updateDropdown(currentCandidates);
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              showError('Error al generar las variantes del nombre. Por favor, intente nuevamente.');
+          })
+          .finally(() => {
+              loadingIndicator.classList.add('hidden');
+              // Aseguramos que el estado no quede bloqueado
+              isGenerating = false;
+          });
+      });
+    });
+
+    // TODO: Consider the case where a person has more than one name
+    // TODO: Analyze the situation of dynamically creating additional inputs for additional names
+    // TODO: Analyze the situation of generating alternatives for each individual name individually
     </script>
 </body>
 </html>

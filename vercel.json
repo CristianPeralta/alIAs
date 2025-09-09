@@ -1,7 +1,7 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/", "destination": "/consult.html" }
+    { "source": "/", "destination": "/index.html" }
   ],
   "functions": {
     "api/scrape-data.js": {
