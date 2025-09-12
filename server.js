@@ -51,6 +51,11 @@ app.post('/api/generate-names', async (req, res) => {
         if (!name || !limit) {
             return res.status(400).json({ error: 'Name and limit are required' });
         }
+
+        if (name.length > 20) {
+            return res.status(400).json({ error: 'Name must be less than or equal to 20 characters' });
+        }
+
         // max limit 20
         if (limit > 20) {
             return res.status(400).json({ error: 'Limit must be less than or equal to 20' });
@@ -329,11 +334,9 @@ app.listen(PORT, () => {
     console.log(`API Key: ${process.env.API_KEY}`);
 });
 
-// TODO: Replace 'Ñ' with 'Ð' for 'minsa' endpoint, both for scraping and returning data.
 // TODO: Implement error handling for the limit quote error from the GEMINI API
 // TODO: Implement scraping data from other websites, for example https://dniperu.com/search-by-name-and-surname/
 // TODO: Implement caching for Minsa data
 // TODO: Implement rate limiter for the number of requests
 // TODO: Deploy to the cloud
 // TODO: Add endpoints for querying by DNI
-// TODO: Add limiter for name length in the generate names endpoint
