@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import fetch from 'node-fetch';
 import puppeteer from 'puppeteer';
 import { Redis } from '@upstash/redis';
+import { replaceEnieToD, replaceDToEnie } from './utils.js';
 
 // Recreate __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,11 @@ app.post('/api/generate-names', async (req, res) => {
         if (!name || !limit) {
             return res.status(400).json({ error: 'Name and limit are required' });
         }
+
+        if (name.length > 20) {
+            return res.status(400).json({ error: 'Name must be less than or equal to 20 characters' });
+        }
+
         // max limit 20
         if (limit > 20) {
             return res.status(400).json({ error: 'Limit must be less than or equal to 20' });
@@ -196,7 +202,7 @@ app.post('/api/generate-names-mock', (req, res) => {
 app.post('/api/scrape-data', async (req, res) => {
     let browser;
     try {
-        const { fatherLastName, motherLastName, name } = req.body;
+        let { fatherLastName, motherLastName, name } = req.body;
         
         if (!fatherLastName || !motherLastName || !name) {
             return res.status(400).json({ error: 'Father lastname, mother lastname and name are required' });
@@ -220,6 +226,11 @@ app.post('/api/scrape-data', async (req, res) => {
 
         // Select 'Datos Personales' in the dropdown
         await page.select('select#cboTipoBusqueda', '1');
+        
+        // Replace 'Ñ' with 'Ð' in input parameters
+        fatherLastName = replaceEnieToD(fatherLastName);
+        motherLastName = replaceEnieToD(motherLastName);
+        name = replaceEnieToD(name);
         
         // Fill in the form fields
         await page.type('input#txtApePaterno', fatherLastName);
@@ -266,7 +277,17 @@ app.post('/api/scrape-data', async (req, res) => {
             return res.status(404).json({ error: 'No se encontraron datos' });
         }
 
-        res.json(results[0]);
+        // Replace 'Ñ' with 'Ð' in the response data
+        const formattedResults = results[0];
+        Object.keys(formattedResults).forEach(key => {
+            if (typeof formattedResults[key] === 'string') {
+                console.log(formattedResults[key]);
+                formattedResults[key] = replaceDToEnie(formattedResults[key]);
+                console.log(replaceDToEnie(formattedResults[key]));
+            }
+        });
+        
+        res.json(formattedResults);
         
     } catch (error) {
         console.error('Error in /api/scrape-data:', error);
@@ -284,13 +305,18 @@ app.post('/api/scrape-data', async (req, res) => {
 
 // Mock endpoint to scrape data from Minsa website.
 app.post('/api/scrape-data-mock', (req, res) => {
-    const { fatherLastName, motherLastName, name } = req.body;
+    let { fatherLastName, motherLastName, name } = req.body;
     
     if (!fatherLastName || !motherLastName || !name) {
         return res.status(400).json({ error: 'Father lastname, mother lastname and name are required' });
     }
 
     const foundedData = Math.random() > 0.5;
+    // Replace 'Ñ' with 'Ð' in input parameters
+    fatherLastName = replaceEnie(fatherLastName);
+    motherLastName = replaceEnie(motherLastName);
+    name = replaceEnie(name);
+    
     const data = {
         tipoDocumento: 'DNI',
         numeroDocumento: '12345678',
@@ -298,7 +324,7 @@ app.post('/api/scrape-data-mock', (req, res) => {
         apellidoMaterno: motherLastName,
         nombres: name,
         fechaNacimiento: '2000-01-01',
-        ubicacionEESS: 'Ubicación 1'
+        ubicacionEESS: replaceEnie('Ubicación 1')
     };
     if (!foundedData) {
         return res.status(404).json({ error: 'No se encontraron datos' });
@@ -313,6 +339,7 @@ app.listen(PORT, () => {
     console.log(`API Key: ${API_KEY}`);
 });
 
+// TODO: Implement error handling for the limit quote error from the GEMINI API
 // TODO: Implement scraping data from other websites, for example https://dniperu.com/search-by-name-and-surname/
 // TODO: Implement caching for Minsa data
 // TODO: Implement rate limiter for the number of requests
