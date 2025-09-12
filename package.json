@@ -12,12 +12,14 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "puppeteer": "^22.15.0",
     "@upstash/redis": "^1.31.6",
     "@sparticuz/chromium": "^131.0.0",
     "dotenv": "17.2.2",
     "express": "4.21.2",
     "node-fetch": "3.3.2",
     "puppeteer-core": "^22.15.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^22.15.0"
   }
 }
