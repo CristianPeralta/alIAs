@@ -456,5 +456,5 @@ app.listen(PORT, () => {
 // TODO: Implement scraping data from other websites, for example https://dniperu.com/search-by-name-and-surname/
 // TODO: Implement caching for Minsa data
 // TODO: Implement rate limiter for the number of requests
-// TODO: Deploy to the cloud
-// TODO: Add endpoints for querying by DNI
+
+
