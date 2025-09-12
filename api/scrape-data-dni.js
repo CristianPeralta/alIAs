@@ -39,8 +39,14 @@ export default async function handler(req, res) {
       timeout: 25000,
     });
 
-    await page.select('select#cboTipoBusqueda', '1');
-    await page.type('input#txtNumDocumento', dni);
+    // Select 'Datos Personales' in the dropdown (2) Tipo de documento
+    await page.select('select#cboTipoBusqueda', '2');
+
+    // Select 'DNI' in the dropdown cboTipoDocumento (1) DNI
+    await page.select('select#cboTipoDocumento', '1');
+
+    // Fill in the form fields // txtNroDocumento
+    await page.type('input#txtNroDocumento', dni);
 
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 25000 }),
