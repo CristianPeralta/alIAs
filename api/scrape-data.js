@@ -1,5 +1,6 @@
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
+import { replaceEnieToD, replaceDToEnie } from '../utils.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -32,9 +33,9 @@ export default async function handler(req, res) {
     });
 
     await page.select('select#cboTipoBusqueda', '1');
-    await page.type('input#txtApePaterno', fatherLastName);
-    await page.type('input#txtApeMaterno', motherLastName);
-    await page.type('input#txtPriNombre', name);
+    await page.type('input#txtApePaterno', replaceEnieToD(fatherLastName));
+    await page.type('input#txtApeMaterno', replaceEnieToD(motherLastName));
+    await page.type('input#txtPriNombre', replaceEnieToD(name));
 
     await Promise.all([
       page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 25000 }),
@@ -76,7 +77,17 @@ export default async function handler(req, res) {
       return;
     }
 
-    res.status(200).json(results[0]);
+    // Replace 'Ñ' with 'Ð' in the response data
+    const formattedResults = results[0];
+    Object.keys(formattedResults).forEach(key => {
+        if (typeof formattedResults[key] === 'string') {
+            console.log(formattedResults[key]);
+            formattedResults[key] = replaceDToEnie(formattedResults[key]);
+            console.log(replaceDToEnie(formattedResults[key]));
+        }
+    });
+
+    res.status(200).json(formattedResults);
   } catch (error) {
     console.error('Error in api/scrape-data:', error);
     res.status(500).json({ success: false, error: 'Error al procesar la solicitud', details: error.message });

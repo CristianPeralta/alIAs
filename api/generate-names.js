@@ -33,6 +33,9 @@ export default async function handler(req, res) {
       res.status(400).json({ error: 'Limit must be less than or equal to 20' });
       return;
     }
+    if (name.length > 20) {
+      return res.status(400).json({ error: 'Name must be less than or equal to 20 characters' });
+    }
 
     const modelId = 'gemini-2.5-flash-preview-05-20';
     const version = 'v1';
