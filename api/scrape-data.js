@@ -1,6 +1,5 @@
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
-import { replaceEnieToD, replaceDToEnie } from '../utils.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -97,3 +96,20 @@ export default async function handler(req, res) {
     }
   }
 }
+
+
+// Helper function to replace 'Ñ' or 'ñ' with 'Ð' in strings
+function replaceEnieToD(str) {
+  if (typeof str === 'string') {
+      return str.replace(/Ñ/g, 'Ð').replace(/ñ/g, 'ð');
+  }
+  return str;
+}
+// Helper function to replace 'Ð' or 'ð' with 'Ñ' or 'ñ' respectively in strings
+function replaceDToEnie(str) {
+  if (typeof str === 'string') {
+      return str.replace(/Ð/g, 'Ñ').replace(/ð/g, 'ñ');
+  }
+  return str;
+}
+  
