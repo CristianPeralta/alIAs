@@ -112,13 +112,25 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
     <div class="flex-grow flex items-center justify-center p-4">
-    <div class="container bg-white p-8 rounded-xl shadow-lg w-full">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Buscar persona por nombre</h1>
+        <div class="container bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Sistema de Consulta</h1>
         <p class="text-gray-600 text-center mb-6">
             Obten datos de una persona en Perú (DNI, nombre, apellido, fecha de nacimiento, ubicación, etc).
         </p>
         
-        <div class="space-y-4 mb-6">
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-200 mb-6">
+            <button id="tabName" class="tab-button active py-2 px-4 font-medium text-sm border-b-2 border-indigo-500 text-indigo-600">
+                Búsqueda por Nombre
+            </button>
+            <button id="tabDni" class="tab-button py-2 px-4 font-medium text-sm text-gray-500 hover:text-gray-700">
+                Búsqueda por DNI
+            </button>
+        </div>
+        
+        <!-- Name Search Tab Content -->
+        <div id="nameSearchTab" class="tab-content">
+            <div class="space-y-4 mb-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label for="fatherLastName" class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno</label>
@@ -177,7 +189,36 @@
         <div id="loadingIndicator" class="hidden text-center text-indigo-600 font-semibold my-4">
             Generando variaciones con IA...
         </div>
+        </div>
         
+        <!-- DNI Search Tab Content -->
+        <div id="dniSearchTab" class="tab-content hidden">
+            <div class="mb-6">
+                <label for="dniInput" class="block text-sm font-medium text-gray-700 mb-1">Número de DNI</label>
+                <div class="flex gap-2">
+                    <input 
+                        id="dniInput" 
+                        type="text" 
+                        placeholder="Ej. 12345678"
+                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        maxlength="8"
+                        inputmode="numeric"
+                    />
+                    <button 
+                        id="searchByDniButton"
+                        class="bg-indigo-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md whitespace-nowrap"
+                    >
+                        Consultar
+                    </button>
+                </div>
+                <p id="dniError" class="text-red-500 text-sm mt-1 hidden">Por favor ingrese un DNI válido (8 dígitos)</p>
+            </div>
+        </div>
+        
+        <div id="loadingSearch" class="hidden text-center text-indigo-600 font-semibold my-4">
+            Buscando datos...
+        </div>
+
         <div id="errorContainer" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r">
             <div class="flex">
                 <div class="flex-shrink-0">
@@ -194,13 +235,12 @@
         <div id="resultsContainer" class="hidden space-y-4">
           <div id="resultsList"></div>
         </div>
+        </div>
     </div>
     
     <div id="notification" class="notification"></div>
     
-    </div> <!-- Close flex-grow container -->
-    
-    <footer class="w-full bg-gradient-to-r from-indigo-50 to-blue-50 border-t border-gray-200 py-6">
+    <footer class="w-full bg-gradient-to-r from-indigo-50 to-blue-50 border-t border-gray-200 py-6 mt-auto">
         <div class="max-w-3xl mx-auto px-4">
             <div class="text-center space-y-2">
                 <p class="text-gray-600 text-sm">
@@ -216,13 +256,163 @@
         </div>
     </footer>
 </body>
-
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching functionality
+        const tabName = document.getElementById('tabName');
+        const tabDni = document.getElementById('tabDni');
+        const nameSearchTab = document.getElementById('nameSearchTab');
+        const dniSearchTab = document.getElementById('dniSearchTab');
+        const dniInput = document.getElementById('dniInput');
+        const searchByDniButton = document.getElementById('searchByDniButton');
+        
+        // Initialize tabs - make sure name search is visible by default
+        nameSearchTab.classList.remove('hidden');
+        dniSearchTab.classList.add('hidden');
+        const dniError = document.getElementById('dniError');
+        
+        // Switch to Name tab
+        tabName.addEventListener('click', () => {
+            tabName.classList.add('border-indigo-500', 'text-indigo-600');
+            tabName.classList.remove('text-gray-500');
+            tabDni.classList.remove('border-indigo-500', 'text-indigo-600');
+            tabDni.classList.add('text-gray-500');
+            nameSearchTab.classList.remove('hidden');
+            dniSearchTab.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            nameInput.value = '';
+            fatherLastNameInput.value = '';
+            motherLastNameInput.value = '';
+        });
+        
+        // Switch to DNI tab
+        tabDni.addEventListener('click', () => {
+            tabDni.classList.add('border-indigo-500', 'text-indigo-600');
+            tabDni.classList.remove('text-gray-500');
+            tabName.classList.remove('border-indigo-500', 'text-indigo-600');
+            tabName.classList.add('text-gray-500');
+            dniSearchTab.classList.remove('hidden');
+            nameSearchTab.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            dniInput.value = '';
+            dniError.classList.add('hidden');
+        });
+        
+        // Validate DNI input (only numbers and max 8 digits)
+        dniInput.addEventListener('input', (e) => {
+            const value = e.target.value.replace(/\D/g, '');
+            e.target.value = value.slice(0, 8);
+            if (value.length === 8) {
+                dniError.classList.add('hidden');
+            }
+        });
+        
+        // Handle DNI search
+        searchByDniButton.addEventListener('click', () => {
+            const dni = dniInput.value.trim();
+            if (dni.length !== 8) {
+                dniError.classList.remove('hidden');
+                return;
+            }
+            
+            // Call the ConsultarDatosPorDni function
+            ConsultarDatosPorDni(dni);
+        });
+        
+        // Function to handle DNI search
+        async function ConsultarDatosPorDni(dni) {
+            // Show loading state
+            resultsList.innerHTML = '';
+            loadingSearch.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+            
+            try {
+                const response = await fetch('/api/scrape-data-dni', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ dni })
+                });
+                
+                let html = '';
+                
+          if (response.status === 404) {
+            // Show message when no data is found (404)
+            html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
+                </div>`;
+          }
+          else if (response.ok) {
+            const data = await response.json();
+            html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
+
+            // Define fields to show
+            const fields = [
+                { key: 'nombres', label: 'Nombres' },
+                { key: 'apellidoPaterno', label: 'Apellido Paterno' },
+                { key: 'apellidoMaterno', label: 'Apellido Materno' },
+                { key: 'tipoDocumento', label: 'Tipo de Documento' },
+                { key: 'numeroDocumento', label: 'Número de Documento' },
+                { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
+                { key: 'ubicacionEESS', label: 'Ubicación EESS' }
+            ];
+
+            if (data) {
+              let hasData = false;
+              fields.forEach(field => {
+                if (data[field.key]) {
+                  hasData = true;
+                  html += `
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-sm font-medium text-gray-500">${field.label}:</div>
+                        <div class="col-span-2 text-sm text-gray-900 font-medium">${data[field.key]}</div>
+                    </div>`;
+                }
+              });
+                        
+              if (!hasData) {
+                html = `
+                  <div class="text-center py-6">
+                      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                      <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                  </div>`;
+                }
+            }
+          } else {
+            html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                </div>`;
+          }
+          resultsList.innerHTML = html;
+          resultsContainer.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = 'Error al consultar el DNI. Por favor, inténtalo de nuevo.';
+                errorContainer.classList.remove('hidden');
+            } finally {
+                loadingSearch.classList.add('hidden');
+            }
+        }
       const fatherLastNameInput = document.getElementById('fatherLastName');
       const motherLastNameInput = document.getElementById('motherLastName');
       const nameInput = document.getElementById('nameInput');
       const generateButton = document.getElementById('generateButton');
+      const loadingSearch = document.getElementById('loadingSearch');
       const resultsContainer = document.getElementById('resultsContainer');
       const resultsList = document.getElementById('resultsList');
       const loadingIndicator = document.getElementById('loadingIndicator');
@@ -258,7 +448,7 @@
             
         // Show loading indicator and clear previous results
         errorContainer.classList.add('hidden');
-        loadingIndicator.classList.remove('hidden');
+        loadingSearch.classList.remove('hidden');
         resultsContainer.classList.add('hidden');
         resultsList.innerHTML = '';
             
@@ -348,7 +538,7 @@
         }
         finally {
           // Hide loading indicator
-          loadingIndicator.classList.add('hidden');
+          loadingSearch.classList.add('hidden');
         }
       } 
 
@@ -566,5 +756,4 @@
     // TODO: Analyze the situation of dynamically creating additional inputs for additional names
     // TODO: Analyze the situation of generating alternatives for each individual name individually
     </script>
-</body>
 </html>

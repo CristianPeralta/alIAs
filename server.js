@@ -303,6 +303,119 @@ app.post('/api/scrape-data', async (req, res) => {
     }
 });
 
+/**
+ * Endpoint to scrape data from Minsa website.
+ * @method POST
+ * @path /api/scrape-data-dni
+ * @body {Object} body - The request body.
+ * @bodyparam {string} dni - The DNI of the person.
+ * @response {Object} result - The result of the scrapping.
+ * @response {boolean} result.success - True if the scrapping was successful.
+ * @response {number} result.count - The number of results found.
+ * @response {Array<Object>} result.data - The scraped data.
+ */
+app.post('/api/scrape-data-dni', async (req, res) => {
+    let browser;
+    try {
+        let { dni } = req.body;
+        
+        if (!dni) {
+            return res.status(400).json({ error: 'DNI is required' });
+        }
+
+        // Launch browser in headless mode
+        browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+        
+        const page = await browser.newPage();
+        
+        // Set user agent to mimic a real browser
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+        
+        // Navigate to the page
+        await page.goto('https://contingenciasis.minsa.gob.pe/frmConsultaContingencia.aspx', {
+            waitUntil: 'networkidle2',
+            timeout: 30000
+        });
+
+        // Select 'Datos Personales' in the dropdown (2) Tipo de documento
+        await page.select('select#cboTipoBusqueda', '2');
+
+        // Select 'DNI' in the dropdown cboTipoDocumento (1) DNI
+        await page.select('select#cboTipoDocumento', '1');
+
+        // Fill in the form fields // txtNroDocumento
+        await page.type('input#txtNroDocumento', dni);
+        
+        // Click the search button and wait for results
+        await Promise.all([
+            page.waitForNavigation({ waitUntil: 'networkidle0' }),
+            page.click('input#btnConsultar')
+        ]);
+
+        // Extract the data from the results table
+        const results = await page.evaluate(() => {
+            const data = [];
+            const rows = document.querySelectorAll('#dgConsulta tr:not(:first-child):not(:last-child)');
+            
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                if (cols.length >= 15) {
+                    data.push({
+                        tipoSeguro: cols[1].textContent.trim(),
+                        tipoFormato: cols[2].textContent.trim(),
+                        numeroAfiliacion: cols[3].textContent.trim(),
+                        planBeneficios: cols[4].textContent.trim(),
+                        fechaAfiliacion: cols[5].textContent.trim(),
+                        vigencia: cols[6].textContent.trim(),
+                        tipoDocumento: cols[7].textContent.trim(),
+                        numeroDocumento: cols[8].textContent.trim(),
+                        apellidoPaterno: cols[9].textContent.trim(),
+                        apellidoMaterno: cols[10].textContent.trim(),
+                        nombres: cols[11].textContent.trim(),
+                        fechaNacimiento: cols[12].textContent.trim(),
+                        sexo: cols[13].textContent.trim(),
+                        eess: cols[14].textContent.trim(),
+                        ubicacionEESS: cols[15]?.textContent.trim() || ''
+                    });
+                }
+            });
+            
+            return data;
+        });
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'No se encontraron datos' });
+        }
+
+        // Replace 'Ñ' with 'Ð' in the response data
+        const formattedResults = results[0];
+        Object.keys(formattedResults).forEach(key => {
+            if (typeof formattedResults[key] === 'string') {
+                console.log(formattedResults[key]);
+                formattedResults[key] = replaceDToEnie(formattedResults[key]);
+                console.log(replaceDToEnie(formattedResults[key]));
+            }
+        });
+        
+        res.json(formattedResults);
+        
+    } catch (error) {
+        console.error('Error in /api/scrape-data:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Error al procesar la solicitud',
+            details: error.message 
+        });
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
+    }
+});
+
+
 // Mock endpoint to scrape data from Minsa website.
 app.post('/api/scrape-data-mock', (req, res) => {
     let { fatherLastName, motherLastName, name } = req.body;
@@ -313,18 +426,18 @@ app.post('/api/scrape-data-mock', (req, res) => {
 
     const foundedData = Math.random() > 0.5;
     // Replace 'Ñ' with 'Ð' in input parameters
-    fatherLastName = replaceEnie(fatherLastName);
-    motherLastName = replaceEnie(motherLastName);
-    name = replaceEnie(name);
+    fatherLastName = replaceEnieToD(fatherLastName);
+    motherLastName = replaceEnieToD(motherLastName);
+    name = replaceEnieToD(name);
     
     const data = {
         tipoDocumento: 'DNI',
         numeroDocumento: '12345678',
-        apellidoPaterno: fatherLastName,
-        apellidoMaterno: motherLastName,
-        nombres: name,
+        apellidoPaterno: replaceDToEnie(fatherLastName),
+        apellidoMaterno: replaceDToEnie(motherLastName),
+        nombres: replaceDToEnie(name),
         fechaNacimiento: '2000-01-01',
-        ubicacionEESS: replaceEnie('Ubicación 1')
+        ubicacionEESS: ('Ubicación 1')
     };
     if (!foundedData) {
         return res.status(404).json({ error: 'No se encontraron datos' });
