@@ -640,7 +640,118 @@
         }
       }
 
-      consultButton.addEventListener("click", consultarDatos);
+      // Use /api/scrape-data-dni-peru'
+      async function consultarDatosPeru () {
+        const names = nameInput.value.trim();
+        const fatherLastName = fatherLastNameInput.value.trim();
+        const motherLastName = motherLastNameInput.value.trim();
+
+        if (!names || !fatherLastName || !motherLastName) {
+          showError("Por favor, completa todos los campos");
+          return;
+        }
+
+        // Show loading indicator
+        errorContainer.classList.add("hidden");
+        loadingSearch.classList.remove("hidden");
+        resultsContainer.classList.add("hidden");
+
+        try {
+          const response = await fetch("/api/scrape-data-dni-peru", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: names,
+              fatherLastName,
+              motherLastName,
+            }),
+          });
+
+          let html = "";
+
+          if (response.status === 404) {
+            // Show message when no data is found (404)
+            html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
+                </div>`;
+          } else if (response.ok) {
+            const data = await response.json();
+            html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
+
+            // Define fields to show
+            /*
+            dni: persona.numero,
+                name: persona.nombres,
+                fatherLastName: persona.apellido_paterno,
+                motherLastName: persona.apellido_materno
+            */
+            const fields = [
+              { key: "dni", label: "Número de Documento" },
+              { key: "name", label: "Nombres" },
+              { key: "fatherLastName", label: "Apellido Paterno" },
+              { key: "motherLastName", label: "Apellido Materno" },
+            ];
+
+            if (data) {
+              let hasData = false;
+              fields.forEach((field) => {
+                if (data[field.key]) {
+                  hasData = true;
+                  html += `
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-sm font-medium text-gray-500">${field.label}:</div>
+                        <div class="col-span-2 text-sm text-gray-900 font-medium">${data[field.key]}</div>
+                    </div>`;
+                }
+              });
+
+              if (!hasData) {
+                html = `
+                  <div class="text-center py-6">
+                      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                      <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                  </div>`;
+              }
+            }
+          } else {
+            html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                </div>`;
+            }
+
+          // Append the result entry so multiple sources can be accumulated
+          appendResultEntry(html, "DNI Perú");
+        } catch (error) {
+          console.error("Error al consultar datos:", error);
+          showError(
+            "Error al cargar los datos. Por favor, inténtalo de nuevo.",
+          );
+        } finally {
+          // Hide loading indicator
+          loadingSearch.classList.add("hidden");
+        }
+      }
+
+      consultButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        consultarDatos();
+        consultarDatosPeru();
+      });
 
       let debounceTimer;
 
