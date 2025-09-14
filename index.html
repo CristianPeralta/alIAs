@@ -1,346 +1,408 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/favicon.png">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.png" />
     <title>AlIAs Perú: Busca Personas y Genera Nombres con IA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f3f4f6;
+      }
+      .container {
+        max-width: 800px;
+      }
+      .input-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .input-group input {
+        flex-grow: 1;
+      }
+      .result-list {
+        list-style: decimal inside;
+      }
+      .notification {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 1rem 2rem;
+        background-color: #10b981;
+        color: white;
+        border-radius: 9999px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+        z-index: 1000;
+      }
+      .notification.show {
+        opacity: 1;
+      }
+      .name-section {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-end;
+      }
+      .name-input {
+        flex: 1;
+      }
+      .details-row {
+        display: none;
+      }
+      .details-row.visible {
+        display: table-row;
+      }
+      .details-content {
+        padding: 1rem;
+        background-color: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+      }
+      /* Style for dropdown items */
+      .dropdown-item:hover {
+        background-color: #f3f4f6;
+      }
+      #nameDropdown {
+        box-sizing: border-box;
+        position: absolute;
+        z-index: 1000;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 0.75rem;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow:
+          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        max-height: 15rem;
+        overflow-y: auto;
+        margin-top: 0.25rem;
+      }
+
+      #nameDropdown button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 1rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+      }
+
+      #nameDropdown button:hover {
+        background-color: #f3f4f6;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #93c5fd;
+        border-radius: 50%;
+        border-top-color: #3b82f6;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 0.5rem;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
-        .container {
-            max-width: 800px;
-        }
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .input-group input {
-            flex-grow: 1;
-        }
-        .result-list {
-            list-style: decimal inside;
-        }
-        .notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 1rem 2rem;
-            background-color: #10b981;
-            color: white;
-            border-radius: 9999px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            z-index: 1000;
-        }
-        .notification.show {
-            opacity: 1;
-        }
-        .name-section {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-end;
-        }
-        .name-input {
-            flex: 1;
-        }
-        .details-row {
-            display: none;
-        }
-        .details-row.visible {
-            display: table-row;
-        }
-        .details-content {
-            padding: 1rem;
-            background-color: #f9fafb;
-            border-top: 1px solid #e5e7eb;
-        }
-        /* Style for dropdown items */
-        .dropdown-item:hover {
-            background-color: #f3f4f6;
-        }
-        #nameDropdown {
-            box-sizing: border-box;
-            position: absolute;
-            z-index: 1000;
-            background: white;
-            border: 1px solid #d1d5db;
-            border-radius: 0.75rem;
-            max-height: 200px;
-            overflow-y: auto;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          max-height: 15rem;
-          overflow-y: auto;
-          margin-top: 0.25rem;
-        }
-        
-        #nameDropdown button {
-          display: block;
-          width: 100%;
-          text-align: left;
-          padding: 0.5rem 1rem;
-          border: none;
-          background: none;
-          cursor: pointer;
-        }
-        
-        #nameDropdown button:hover {
-          background-color: #f3f4f6;
-        }
-        
-        .loading-spinner {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid #93c5fd;
-            border-radius: 50%;
-            border-top-color: #3b82f6;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 0.5rem;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+      }
     </style>
-</head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
+  </head>
+  <body class="bg-gray-100 min-h-screen flex flex-col">
     <div class="flex-grow flex items-center justify-center p-4">
-        <div class="container bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">Sistema de Consulta</h1>
+      <div class="container bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">
+          Sistema de Consulta
+        </h1>
         <p class="text-gray-600 text-center mb-6">
-            Obten datos de una persona en Perú (DNI, nombre, apellido, fecha de nacimiento, ubicación, etc).
+          Obten datos de una persona en Perú (DNI, nombre, apellido, fecha de
+          nacimiento, ubicación, etc).
         </p>
-        
+
         <!-- Tabs -->
         <div class="flex border-b border-gray-200 mb-6">
-            <button id="tabName" class="tab-button active py-2 px-4 font-medium text-sm border-b-2 border-indigo-500 text-indigo-600">
-                Búsqueda por Nombre
-            </button>
-            <button id="tabDni" class="tab-button py-2 px-4 font-medium text-sm text-gray-500 hover:text-gray-700">
-                Búsqueda por DNI
-            </button>
+          <button
+            id="tabName"
+            class="tab-button active py-2 px-4 font-medium text-sm border-b-2 border-indigo-500 text-indigo-600"
+          >
+            Búsqueda por Nombre
+          </button>
+          <button
+            id="tabDni"
+            class="tab-button py-2 px-4 font-medium text-sm text-gray-500 hover:text-gray-700"
+          >
+            Búsqueda por DNI
+          </button>
         </div>
-        
+
         <!-- Name Search Tab Content -->
         <div id="nameSearchTab" class="tab-content">
-            <div class="space-y-4 mb-6">
+          <div class="space-y-4 mb-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="fatherLastName" class="block text-sm font-medium text-gray-700 mb-1">Apellido Paterno</label>
-                    <input 
-                        id="fatherLastName" 
-                        type="text" 
-                        placeholder="Ej. Pérez"
-                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                </div>
-                <div>
-                    <label for="motherLastName" class="block text-sm font-medium text-gray-700 mb-1">Apellido Materno</label>
-                    <input 
-                        id="motherLastName" 
-                        type="text" 
-                        placeholder="Ej. Gómez"
-                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                </div>
-            </div>
-            
-            <div class="name-section relative">
-                <div class="name-input w-full relative">
-                    <label for="nameInput" class="block text-sm font-medium text-gray-700 mb-1">Nombres</label>
-                    <div class="relative">
-                        <input 
-                            id="nameInput" 
-                            type="text" 
-                            placeholder="Ej. Juan Carlos"
-                            class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10"
-                            autocomplete="off"
-                        />
-                        <div id="nameDropdown" class="absolute w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 hidden"></div>
-                    </div>
-                </div>
-                <button 
-                    id="generateButton" 
-                    class="h-[42px] bg-blue-600 text-white px-4 rounded-xl font-semibold hover:bg-blue-700 transition duration-300 shadow-md whitespace-nowrap flex items-center justify-center gap-2"
-                    alt="Generar Nombres Alternativos"
+              <div>
+                <label
+                  for="fatherLastName"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Apellido Paterno</label
                 >
-                    <span class="hidden sm:inline">Nombres Alternativos</span>
-                    <span class="inline sm:hidden">+ Nombres</span>
-                </button>
+                <input
+                  id="fatherLastName"
+                  type="text"
+                  placeholder="Ej. Pérez"
+                  class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label
+                  for="motherLastName"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Apellido Materno</label
+                >
+                <input
+                  id="motherLastName"
+                  type="text"
+                  placeholder="Ej. Gómez"
+                  class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div class="name-section relative">
+              <div class="name-input w-full relative">
+                <label
+                  for="nameInput"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Nombres</label
+                >
+                <div class="relative">
+                  <input
+                    id="nameInput"
+                    type="text"
+                    placeholder="Ej. Juan Carlos"
+                    class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10"
+                    autocomplete="off"
+                  />
+                  <div
+                    id="nameDropdown"
+                    class="absolute w-full mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-10 hidden"
+                  ></div>
+                </div>
+              </div>
+              <button
+                id="generateButton"
+                class="h-[42px] bg-blue-600 text-white px-4 rounded-xl font-semibold hover:bg-blue-700 transition duration-300 shadow-md whitespace-nowrap flex items-center justify-center gap-2"
+                alt="Generar Nombres Alternativos"
+              >
+                <span class="hidden sm:inline">Nombres Alternativos</span>
+                <span class="inline sm:hidden">+ Nombres</span>
+              </button>
             </div>
             <div class="w-full">
-              <button 
-              id="consultButton" 
-              class="w-full bg-indigo-600 text-white py-4 px-4 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md whitespace-nowrap flex items-center justify-center gap-2"
-            >
+              <button
+                id="consultButton"
+                class="w-full bg-indigo-600 text-white py-4 px-4 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md whitespace-nowrap flex items-center justify-center gap-2"
+              >
                 <span class="hidden sm:inline">Consultar Datos</span>
                 <span class="inline sm:hidden">Consultar</span>
-            </button>
+              </button>
             </div>
+          </div>
+
+          <div
+            id="loadingIndicator"
+            class="hidden text-center text-indigo-600 font-semibold my-4"
+          >
+            Generando variaciones con IA...
+          </div>
         </div>
 
-        <div id="loadingIndicator" class="hidden text-center text-indigo-600 font-semibold my-4">
-            Generando variaciones con IA...
-        </div>
-        </div>
-        
         <!-- DNI Search Tab Content -->
         <div id="dniSearchTab" class="tab-content hidden">
-            <div class="mb-6">
-                <label for="dniInput" class="block text-sm font-medium text-gray-700 mb-1">Número de DNI</label>
-                <div class="flex gap-2">
-                    <input 
-                        id="dniInput" 
-                        type="text" 
-                        placeholder="Ej. 12345678"
-                        class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        maxlength="8"
-                        inputmode="numeric"
-                    />
-                    <button 
-                        id="searchByDniButton"
-                        class="bg-indigo-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md whitespace-nowrap"
-                    >
-                        Consultar
-                    </button>
-                </div>
-                <p id="dniError" class="text-red-500 text-sm mt-1 hidden">Por favor ingrese un DNI válido (8 dígitos)</p>
+          <div class="mb-6">
+            <label
+              for="dniInput"
+              class="block text-sm font-medium text-gray-700 mb-1"
+              >Número de DNI</label
+            >
+            <div class="flex gap-2">
+              <input
+                id="dniInput"
+                type="text"
+                placeholder="Ej. 12345678"
+                class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                maxlength="8"
+                inputmode="numeric"
+              />
+              <button
+                id="searchByDniButton"
+                class="bg-indigo-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md whitespace-nowrap"
+              >
+                Consultar
+              </button>
             </div>
-        </div>
-        
-        <div id="loadingSearch" class="hidden text-center text-indigo-600 font-semibold my-4">
-            Buscando datos...
+            <p id="dniError" class="text-red-500 text-sm mt-1 hidden">
+              Por favor ingrese un DNI válido (8 dígitos)
+            </p>
+          </div>
         </div>
 
-        <div id="errorContainer" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                    </svg>
-                </div>
-                <div class="ml-3">
-                    <p id="errorMessage" class="text-sm"></p>
-                </div>
+        <div
+          id="loadingSearch"
+          class="hidden text-center text-indigo-600 font-semibold my-4"
+        >
+          Buscando datos...
+        </div>
+
+        <div
+          id="errorContainer"
+          class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r"
+        >
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg
+                class="h-5 w-5 text-red-500"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clip-rule="evenodd"
+                />
+              </svg>
             </div>
+            <div class="ml-3">
+              <p id="errorMessage" class="text-sm"></p>
+            </div>
+          </div>
         </div>
 
         <div id="resultsContainer" class="hidden space-y-4">
           <div id="resultsList"></div>
         </div>
-        </div>
+      </div>
     </div>
-    
+
     <div id="notification" class="notification"></div>
-    
-    <footer class="w-full bg-gradient-to-r from-indigo-50 to-blue-50 border-t border-gray-200 py-6 mt-auto">
-        <div class="max-w-3xl mx-auto px-4">
-            <div class="text-center space-y-2">
-                <p class="text-gray-600 text-sm">
-                    Proyecto inspirado en ayudar a mi censista favorita 💜
-                </p>
-                <p class="text-gray-600 text-sm">
-                    Este proyecto es open source; si deseas aportar o dejar sugerencias, puedes escribirme al <a class="text-blue-600 hover:underline" href="mailto:krix0s.es@gmail.com">krix0s.es@gmail.com</a>.
-                </p>
-                <p class="text-gray-500 text-xs">
-                    &copy; 2025 AlIAs. Licensed under the GNU GPL v3 License.
-                </p>
-            </div>
+
+    <footer
+      class="w-full bg-gradient-to-r from-indigo-50 to-blue-50 border-t border-gray-200 py-6 mt-auto"
+    >
+      <div class="max-w-3xl mx-auto px-4">
+        <div class="text-center space-y-2">
+          <p class="text-gray-600 text-sm">
+            Proyecto inspirado en ayudar a mi censista favorita 💜
+          </p>
+          <p class="text-gray-600 text-sm">
+            Este proyecto es open source; si deseas aportar o dejar sugerencias,
+            puedes escribirme al
+            <a
+              class="text-blue-600 hover:underline"
+              href="mailto:krix0s.es@gmail.com"
+              >krix0s.es@gmail.com</a
+            >.
+          </p>
+          <p class="text-gray-500 text-xs">
+            &copy; 2025 AlIAs. Licensed under the GNU GPL v3 License.
+          </p>
         </div>
+      </div>
     </footer>
-</body>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Tab switching functionality
-        const tabName = document.getElementById('tabName');
-        const tabDni = document.getElementById('tabDni');
-        const nameSearchTab = document.getElementById('nameSearchTab');
-        const dniSearchTab = document.getElementById('dniSearchTab');
-        const dniInput = document.getElementById('dniInput');
-        const searchByDniButton = document.getElementById('searchByDniButton');
-        
-        // Initialize tabs - make sure name search is visible by default
-        nameSearchTab.classList.remove('hidden');
-        dniSearchTab.classList.add('hidden');
-        const dniError = document.getElementById('dniError');
-        
-        // Switch to Name tab
-        tabName.addEventListener('click', () => {
-            tabName.classList.add('border-indigo-500', 'text-indigo-600');
-            tabName.classList.remove('text-gray-500');
-            // Clear Results list
-            resultsList.innerHTML = '';
-            tabDni.classList.remove('border-indigo-500', 'text-indigo-600');
-            tabDni.classList.add('text-gray-500');
-            nameSearchTab.classList.remove('hidden');
-            dniSearchTab.classList.add('hidden');
-            resultsContainer.classList.add('hidden');
-            nameInput.value = '';
-            fatherLastNameInput.value = '';
-            motherLastNameInput.value = '';
-        });
-        
-        // Switch to DNI tab
-        tabDni.addEventListener('click', () => {
-            tabDni.classList.add('border-indigo-500', 'text-indigo-600');
-            tabDni.classList.remove('text-gray-500');
-            // Clear Results list
-            resultsList.innerHTML = '';
-            tabName.classList.remove('border-indigo-500', 'text-indigo-600');
-            tabName.classList.add('text-gray-500');
-            dniSearchTab.classList.remove('hidden');
-            nameSearchTab.classList.add('hidden');
-            resultsContainer.classList.add('hidden');
-            dniInput.value = '';
-            dniError.classList.add('hidden');
-        });
-        
-        // Validate DNI input (only numbers and max 8 digits)
-        dniInput.addEventListener('input', (e) => {
-            const value = e.target.value.replace(/\D/g, '');
-            e.target.value = value.slice(0, 8);
-            if (value.length === 8) {
-                dniError.classList.add('hidden');
-            }
-        });
-        
-        // Handle DNI search
-        searchByDniButton.addEventListener('click', () => {
-            const dni = dniInput.value.trim();
-            if (dni.length !== 8) {
-                dniError.classList.remove('hidden');
-                return;
-            }
-            
-            // Call the ConsultarDatosPorDni function
-            ConsultarDatosPorDni(dni);
-        });
-        
-        // Function to handle DNI search
-        async function ConsultarDatosPorDni(dni) {
-            // Show loading state
-            // we keep previous results to allow multiple sources to accumulate
-            loadingSearch.classList.remove('hidden');
-            resultsContainer.classList.add('hidden');
-            
-            try {
-                const response = await fetch('/api/scrape-data-dni', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ dni })
-                });
-                
-                let html = '';
-                
+  </body>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // Tab switching functionality
+      const tabName = document.getElementById("tabName");
+      const tabDni = document.getElementById("tabDni");
+      const nameSearchTab = document.getElementById("nameSearchTab");
+      const dniSearchTab = document.getElementById("dniSearchTab");
+      const dniInput = document.getElementById("dniInput");
+      const searchByDniButton = document.getElementById("searchByDniButton");
+
+      // Initialize tabs - make sure name search is visible by default
+      nameSearchTab.classList.remove("hidden");
+      dniSearchTab.classList.add("hidden");
+      const dniError = document.getElementById("dniError");
+
+      // Switch to Name tab
+      tabName.addEventListener("click", () => {
+        tabName.classList.add("border-indigo-500", "text-indigo-600");
+        tabName.classList.remove("text-gray-500");
+        // Clear Results list
+        resultsList.innerHTML = "";
+        tabDni.classList.remove("border-indigo-500", "text-indigo-600");
+        tabDni.classList.add("text-gray-500");
+        nameSearchTab.classList.remove("hidden");
+        dniSearchTab.classList.add("hidden");
+        resultsContainer.classList.add("hidden");
+        nameInput.value = "";
+        fatherLastNameInput.value = "";
+        motherLastNameInput.value = "";
+      });
+
+      // Switch to DNI tab
+      tabDni.addEventListener("click", () => {
+        tabDni.classList.add("border-indigo-500", "text-indigo-600");
+        tabDni.classList.remove("text-gray-500");
+        // Clear Results list
+        resultsList.innerHTML = "";
+        tabName.classList.remove("border-indigo-500", "text-indigo-600");
+        tabName.classList.add("text-gray-500");
+        dniSearchTab.classList.remove("hidden");
+        nameSearchTab.classList.add("hidden");
+        resultsContainer.classList.add("hidden");
+        dniInput.value = "";
+        dniError.classList.add("hidden");
+      });
+
+      // Validate DNI input (only numbers and max 8 digits)
+      dniInput.addEventListener("input", (e) => {
+        const value = e.target.value.replace(/\D/g, "");
+        e.target.value = value.slice(0, 8);
+        if (value.length === 8) {
+          dniError.classList.add("hidden");
+        }
+      });
+
+      // Handle DNI search
+      searchByDniButton.addEventListener("click", () => {
+        const dni = dniInput.value.trim();
+        if (dni.length !== 8) {
+          dniError.classList.remove("hidden");
+          return;
+        }
+
+        // Call the ConsultarDatosPorDni function
+        ConsultarDatosPorDni(dni);
+      });
+
+      // Function to handle DNI search
+      async function ConsultarDatosPorDni(dni) {
+        // Show loading state
+        // we keep previous results to allow multiple sources to accumulate
+        loadingSearch.classList.remove("hidden");
+        resultsContainer.classList.add("hidden");
+
+        try {
+          const response = await fetch("/api/scrape-data-dni", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ dni }),
+          });
+
+          let html = "";
+
           if (response.status === 404) {
             // Show message when no data is found (404)
             html = `
@@ -351,25 +413,24 @@
                     <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
                     <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
                 </div>`;
-          }
-          else if (response.ok) {
+          } else if (response.ok) {
             const data = await response.json();
             html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
             // Define fields to show
             const fields = [
-                { key: 'nombres', label: 'Nombres' },
-                { key: 'apellidoPaterno', label: 'Apellido Paterno' },
-                { key: 'apellidoMaterno', label: 'Apellido Materno' },
-                { key: 'tipoDocumento', label: 'Tipo de Documento' },
-                { key: 'numeroDocumento', label: 'Número de Documento' },
-                { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
-                { key: 'ubicacionEESS', label: 'Ubicación EESS' }
+              { key: "nombres", label: "Nombres" },
+              { key: "apellidoPaterno", label: "Apellido Paterno" },
+              { key: "apellidoMaterno", label: "Apellido Materno" },
+              { key: "tipoDocumento", label: "Tipo de Documento" },
+              { key: "numeroDocumento", label: "Número de Documento" },
+              { key: "fechaNacimiento", label: "Fecha de Nacimiento" },
+              { key: "ubicacionEESS", label: "Ubicación EESS" },
             ];
 
             if (data) {
               let hasData = false;
-              fields.forEach(field => {
+              fields.forEach((field) => {
                 if (data[field.key]) {
                   hasData = true;
                   html += `
@@ -379,7 +440,7 @@
                     </div>`;
                 }
               });
-                        
+
               if (!hasData) {
                 html = `
                   <div class="text-center py-6">
@@ -389,7 +450,7 @@
                       <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
                       <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                   </div>`;
-                }
+              }
             }
           } else {
             html = `
@@ -402,110 +463,110 @@
                 </div>`;
           }
           // Append the result entry so multiple sources can be accumulated
-          appendResultEntry(html, 'Minsa');
-
-            } catch (error) {
-                console.error('Error:', error);
-                errorMessage.textContent = 'Error al consultar el DNI. Por favor, inténtalo de nuevo.';
-                errorContainer.classList.remove('hidden');
-            } finally {
-                loadingSearch.classList.add('hidden');
-            }
+          appendResultEntry(html, "Minsa");
+        } catch (error) {
+          console.error("Error:", error);
+          errorMessage.textContent =
+            "Error al consultar el DNI. Por favor, inténtalo de nuevo.";
+          errorContainer.classList.remove("hidden");
+        } finally {
+          loadingSearch.classList.add("hidden");
         }
-      const fatherLastNameInput = document.getElementById('fatherLastName');
-      const motherLastNameInput = document.getElementById('motherLastName');
-      const nameInput = document.getElementById('nameInput');
-      const generateButton = document.getElementById('generateButton');
-      const loadingSearch = document.getElementById('loadingSearch');
-      const resultsContainer = document.getElementById('resultsContainer');
-      const resultsList = document.getElementById('resultsList');
-      const loadingIndicator = document.getElementById('loadingIndicator');
-      const errorContainer = document.getElementById('errorContainer');
-      const errorMessage = document.getElementById('errorMessage');
-      const consultButton = document.getElementById('consultButton');
-      const nameDropdown = document.getElementById('nameDropdown');
-      
+      }
+      const fatherLastNameInput = document.getElementById("fatherLastName");
+      const motherLastNameInput = document.getElementById("motherLastName");
+      const nameInput = document.getElementById("nameInput");
+      const generateButton = document.getElementById("generateButton");
+      const loadingSearch = document.getElementById("loadingSearch");
+      const resultsContainer = document.getElementById("resultsContainer");
+      const resultsList = document.getElementById("resultsList");
+      const loadingIndicator = document.getElementById("loadingIndicator");
+      const errorContainer = document.getElementById("errorContainer");
+      const errorMessage = document.getElementById("errorMessage");
+      const consultButton = document.getElementById("consultButton");
+      const nameDropdown = document.getElementById("nameDropdown");
+
       const limit = 10;
       let currentCandidates = [];
       let isGenerating = false; // Estado de carga para /api/generate-names
 
       // Helper: asegura que exista un contenedor de lista y devuelve la referencia
       function ensureResultsListContainer() {
-          let container = resultsList.querySelector('.results-list-container');
-          if (!container) {
-              container = document.createElement('div');
-              container.className = 'results-list-container space-y-4';
-              resultsList.appendChild(container);
-          }
-          return container;
+        let container = resultsList.querySelector(".results-list-container");
+        if (!container) {
+          container = document.createElement("div");
+          container.className = "results-list-container space-y-4";
+          resultsList.appendChild(container);
+        }
+        return container;
       }
 
       // Helper: añade un resultado (html) como una entrada en la lista con metadatos de fuente
-      function appendResultEntry(html, sourceLabel = 'Fuente desconocida') {
-          const container = ensureResultsListContainer();
-          const entry = document.createElement('div');
-          entry.className = 'result-entry bg-white p-4 rounded-lg shadow border';
-          entry.setAttribute('data-source', sourceLabel);
+      function appendResultEntry(html, sourceLabel = "Fuente desconocida") {
+        const container = ensureResultsListContainer();
+        const entry = document.createElement("div");
+        entry.className = "result-entry bg-white p-4 rounded-lg shadow border";
+        entry.setAttribute("data-source", sourceLabel);
 
-          const header = document.createElement('div');
-          header.className = 'flex items-center justify-between mb-3';
-          header.innerHTML = `
+        const header = document.createElement("div");
+        header.className = "flex items-center justify-between mb-3";
+        header.innerHTML = `
             <div class="text-sm text-gray-500 font-medium">Fuente: ${sourceLabel}</div>
             <div class="text-xs text-gray-400">${new Date().toLocaleString()}</div>
           `;
 
-          const content = document.createElement('div');
-          content.innerHTML = html;
+        const content = document.createElement("div");
+        content.innerHTML = html;
 
-          entry.appendChild(header);
-          entry.appendChild(content);
-          container.appendChild(entry);
+        entry.appendChild(header);
+        entry.appendChild(content);
+        container.appendChild(entry);
 
-          // Mostrar contenedor de resultados
-          resultsContainer.classList.remove('hidden');
+        // Mostrar contenedor de resultados
+        resultsContainer.classList.remove("hidden");
       }
 
       // Function to show errors
       function showError(message) {
         console.error(message);
         errorMessage.textContent = message;
-        errorContainer.classList.remove('hidden');
+        errorContainer.classList.remove("hidden");
         setTimeout(() => {
-            errorContainer.classList.add('hidden');
+          errorContainer.classList.add("hidden");
         }, 5000);
       }
 
-                // Function to consult additional data
-            async function consultarDados() {
-                const names = nameInput.value.trim();
-                const fatherLastName = fatherLastNameInput.value.trim();
-                const motherLastName = motherLastNameInput.value.trim();
-            
-                if (!names || !fatherLastName || !motherLastName) {
-                    showError('Por favor, completa todos los campos');
-                        return;
-                    }
-            
-                // Show loading indicator
-                errorContainer.classList.add('hidden');
-                loadingSearch.classList.remove('hidden');
-                resultsContainer.classList.add('hidden');
-            
+      // Function to consult additional data
+      async function consultarDados() {
+        const names = nameInput.value.trim();
+        const fatherLastName = fatherLastNameInput.value.trim();
+        const motherLastName = motherLastNameInput.value.trim();
+
+        if (!names || !fatherLastName || !motherLastName) {
+          showError("Por favor, completa todos los campos");
+          return;
+        }
+
+        // Show loading indicator
+        errorContainer.classList.add("hidden");
+        loadingSearch.classList.remove("hidden");
+        resultsContainer.classList.add("hidden");
+
         try {
-          const response = await fetch('/api/scrape-data', {
-            method: 'POST',
+          const response = await fetch("/api/scrape-data", {
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                name: names,
-                fatherLastName,
-                motherLastName
-              })
-            });
-                
-          let html = '';
-                
+              name: names,
+              fatherLastName,
+              motherLastName,
+            }),
+          });
+
+          let html = "";
+
           if (response.status === 404) {
             // Show message when no data is found (404)
             html = `
@@ -516,25 +577,24 @@
                     <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
                     <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
                 </div>`;
-          }
-          else if (response.ok) {
+          } else if (response.ok) {
             const data = await response.json();
             html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
             // Define fields to show
             const fields = [
-                { key: 'nombres', label: 'Nombres' },
-                { key: 'apellidoPaterno', label: 'Apellido Paterno' },
-                { key: 'apellidoMaterno', label: 'Apellido Materno' },
-                { key: 'tipoDocumento', label: 'Tipo de Documento' },
-                { key: 'numeroDocumento', label: 'Número de Documento' },
-                { key: 'fechaNacimiento', label: 'Fecha de Nacimiento' },
-                { key: 'ubicacionEESS', label: 'Ubicación EESS' }
+              { key: "nombres", label: "Nombres" },
+              { key: "apellidoPaterno", label: "Apellido Paterno" },
+              { key: "apellidoMaterno", label: "Apellido Materno" },
+              { key: "tipoDocumento", label: "Tipo de Documento" },
+              { key: "numeroDocumento", label: "Número de Documento" },
+              { key: "fechaNacimiento", label: "Fecha de Nacimiento" },
+              { key: "ubicacionEESS", label: "Ubicación EESS" },
             ];
 
             if (data) {
               let hasData = false;
-              fields.forEach(field => {
+              fields.forEach((field) => {
                 if (data[field.key]) {
                   hasData = true;
                   html += `
@@ -544,7 +604,7 @@
                     </div>`;
                 }
               });
-                        
+
               if (!hasData) {
                 html = `
                   <div class="text-center py-6">
@@ -554,7 +614,7 @@
                       <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
                       <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                   </div>`;
-                }
+              }
             }
           } else {
             html = `
@@ -566,226 +626,237 @@
                     <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                 </div>`;
           }
-            
-          // Append the result entry so multiple sources can be accumulated
-          appendResultEntry(html, 'Minsa');
-        }
-        catch (error) {
-          console.error('Error al consultar datos:', error);
-          showError('Error al cargar los datos. Por favor, inténtalo de nuevo.');
-        }
-        finally {
-          // Hide loading indicator
-          loadingSearch.classList.add('hidden');
-        }
-      } 
 
-      consultButton.addEventListener('click', consultarDados);
-        
+          // Append the result entry so multiple sources can be accumulated
+          appendResultEntry(html, "Minsa");
+        } catch (error) {
+          console.error("Error al consultar datos:", error);
+          showError(
+            "Error al cargar los datos. Por favor, inténtalo de nuevo.",
+          );
+        } finally {
+          // Hide loading indicator
+          loadingSearch.classList.add("hidden");
+        }
+      }
+
+      consultButton.addEventListener("click", consultarDados);
+
       let debounceTimer;
 
       // Function to validate the fields
       function validateFields() {
-            const fatherLastName = fatherLastNameInput.value.trim();
-            const motherLastName = motherLastNameInput.value.trim();
-            const name = nameInput.value.trim();
-            
-            // Validaciones
-            if (!fatherLastName || !motherLastName) {
-                errorContainer.classList.remove('hidden');
-                errorMessage.textContent = 'Por favor ingresa ambos apellidos';
-                return false;
-            }
+        const fatherLastName = fatherLastNameInput.value.trim();
+        const motherLastName = motherLastNameInput.value.trim();
+        const name = nameInput.value.trim();
 
-            if (!name) {
-                errorContainer.classList.remove('hidden');
-                errorMessage.textContent = 'Por favor ingresa al menos un nombre';
-                return false;
-            }
-            
-            errorContainer.classList.add('hidden');
-            return true;
+        // Validaciones
+        if (!fatherLastName || !motherLastName) {
+          errorContainer.classList.remove("hidden");
+          errorMessage.textContent = "Por favor ingresa ambos apellidos";
+          return false;
         }
+
+        if (!name) {
+          errorContainer.classList.remove("hidden");
+          errorMessage.textContent = "Por favor ingresa al menos un nombre";
+          return false;
+        }
+
+        errorContainer.classList.add("hidden");
+        return true;
+      }
 
       // Function to capitalize proper names
       function formatName(name) {
-            return name.toLowerCase()
-                .split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
-        }
-        
+        return name
+          .toLowerCase()
+          .split(" ")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
+      }
+
       // New function to update the custom dropdown
       function updateDropdown(candidates) {
-          try {
-              // Verify that the dropdown element exists
-              if (!nameDropdown) {
-                  console.error('Error: No se encontró el elemento nameDropdown');
-                  return;
-              }
-
-              // Si estamos generando, ocultar dropdown y no continuar
-              if (isGenerating) {
-                  nameDropdown.classList.remove('block');
-                  nameDropdown.classList.add('hidden');
-                  return;
-              }
-
-              // Clear the dropdown
-              nameDropdown.innerHTML = '';
-              
-              if (!candidates || candidates.length === 0) {
-                  console.log('No hay candidatos, ocultando dropdown');
-                  nameDropdown.classList.remove('block');
-                  nameDropdown.classList.add('hidden');
-                  return;
-              }
-
-              // Add candidates to the dropdown
-              candidates.forEach(candidate => {
-                  if (candidate) {
-                      const button = document.createElement('button');
-                      button.type = 'button';
-                      button.textContent = candidate;
-                      button.className = 'dropdown-item block w-full text-left py-2 px-4 hover:bg-gray-100 transition-colors duration-200';
-                      button.addEventListener('click', (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          nameInput.value = candidate;
-                          nameDropdown.classList.remove('block');
-                          nameDropdown.classList.add('hidden');
-                      });
-                      nameDropdown.appendChild(button);
-                  }
-              });
-              
-              // Show the dropdown
-              nameDropdown.classList.remove('hidden');
-              nameDropdown.classList.add('block');
-              // Ensure that no inline style previously hid the element
-              if (nameDropdown.style && nameDropdown.style.display) {
-                  nameDropdown.style.removeProperty('display');
-              }
-          } catch (error) {
-              console.error('Error en updateDropdown:', error);
-              if (nameDropdown) {
-                  nameDropdown.classList.add('hidden');
-              }
+        try {
+          // Verify that the dropdown element exists
+          if (!nameDropdown) {
+            console.error("Error: No se encontró el elemento nameDropdown");
+            return;
           }
+
+          // Si estamos generando, ocultar dropdown y no continuar
+          if (isGenerating) {
+            nameDropdown.classList.remove("block");
+            nameDropdown.classList.add("hidden");
+            return;
+          }
+
+          // Clear the dropdown
+          nameDropdown.innerHTML = "";
+
+          if (!candidates || candidates.length === 0) {
+            console.log("No hay candidatos, ocultando dropdown");
+            nameDropdown.classList.remove("block");
+            nameDropdown.classList.add("hidden");
+            return;
+          }
+
+          // Add candidates to the dropdown
+          candidates.forEach((candidate) => {
+            if (candidate) {
+              const button = document.createElement("button");
+              button.type = "button";
+              button.textContent = candidate;
+              button.className =
+                "dropdown-item block w-full text-left py-2 px-4 hover:bg-gray-100 transition-colors duration-200";
+              button.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                nameInput.value = candidate;
+                nameDropdown.classList.remove("block");
+                nameDropdown.classList.add("hidden");
+              });
+              nameDropdown.appendChild(button);
+            }
+          });
+
+          // Show the dropdown
+          nameDropdown.classList.remove("hidden");
+          nameDropdown.classList.add("block");
+          // Ensure that no inline style previously hid the element
+          if (nameDropdown.style && nameDropdown.style.display) {
+            nameDropdown.style.removeProperty("display");
+          }
+        } catch (error) {
+          console.error("Error en updateDropdown:", error);
+          if (nameDropdown) {
+            nameDropdown.classList.add("hidden");
+          }
+        }
       }
 
       // Function to verify if the name is in the candidates
       function isNameInCandidates(name) {
-          return currentCandidates.some(candidate => 
-              candidate && candidate.toLowerCase() === name.toLowerCase()
-          );
+        return currentCandidates.some(
+          (candidate) =>
+            candidate && candidate.toLowerCase() === name.toLowerCase(),
+        );
       }
 
       // Handle click outside the dropdown to hide it
-      document.addEventListener('click', (event) => {
-          if (!nameInput.contains(event.target) && !nameDropdown.contains(event.target) && !generateButton.contains(event.target)) {
-              nameDropdown.classList.remove('block');
-              nameDropdown.classList.add('hidden');
-          }
+      document.addEventListener("click", (event) => {
+        if (
+          !nameInput.contains(event.target) &&
+          !nameDropdown.contains(event.target) &&
+          !generateButton.contains(event.target)
+        ) {
+          nameDropdown.classList.remove("block");
+          nameDropdown.classList.add("hidden");
+        }
       });
-      
+
       // Handle input to filter dynamically
-      nameInput.addEventListener('input', () => {
+      nameInput.addEventListener("input", () => {
         // Si está cargando, no mostrar el dropdown
         if (isGenerating) {
-          nameDropdown.classList.remove('block');
-          nameDropdown.classList.add('hidden');
+          nameDropdown.classList.remove("block");
+          nameDropdown.classList.add("hidden");
           return;
         }
 
         const value = nameInput.value.trim().toLowerCase();
         if (value.length > 0 && currentCandidates.length > 0) {
-          const filtered = currentCandidates.filter(candidate => 
-            candidate && candidate.toLowerCase().includes(value)
+          const filtered = currentCandidates.filter(
+            (candidate) => candidate && candidate.toLowerCase().includes(value),
           );
           updateDropdown(filtered);
         } else {
-          nameDropdown.classList.remove('block');
-          nameDropdown.classList.add('hidden');
+          nameDropdown.classList.remove("block");
+          nameDropdown.classList.add("hidden");
         }
       });
 
       // Handle click on the generate button
-      generateButton.addEventListener('click', (e) => {
-          e.preventDefault();
-          if (!validateFields()) {
-              nameDropdown.classList.remove('block');
-              nameDropdown.classList.add('hidden');
-              return;
-          }
+      generateButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (!validateFields()) {
+          nameDropdown.classList.remove("block");
+          nameDropdown.classList.add("hidden");
+          return;
+        }
 
-          const name = nameInput.value.trim();
-          
-          // Verify if the name is already in the list of candidates and if the list is not empty
-          if (currentCandidates.length > 0 && isNameInCandidates(name)) {
-              console.log('Name already exists, showing dropdown');
-              updateDropdown(currentCandidates);
-              return;
-          }
+        const name = nameInput.value.trim();
 
-          // If the name is not in the list, add it and then call the API
-          if (!isNameInCandidates(name)) {
-              currentCandidates.unshift(name);
-              // Limit to 10 candidates
-              currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
-          }
-          // Entramos en estado de carga: ocultar dropdown
-          isGenerating = true;
-          nameDropdown.classList.remove('block');
-          nameDropdown.classList.add('hidden');
+        // Verify if the name is already in the list of candidates and if the list is not empty
+        if (currentCandidates.length > 0 && isNameInCandidates(name)) {
+          console.log("Name already exists, showing dropdown");
+          updateDropdown(currentCandidates);
+          return;
+        }
 
-          // Show the loading indicator
-          loadingIndicator.classList.remove('hidden');
-          resultsContainer.classList.add('hidden');
-          errorContainer.classList.add('hidden');
+        // If the name is not in the list, add it and then call the API
+        if (!isNameInCandidates(name)) {
+          currentCandidates.unshift(name);
+          // Limit to 10 candidates
+          currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
+        }
+        // Entramos en estado de carga: ocultar dropdown
+        isGenerating = true;
+        nameDropdown.classList.remove("block");
+        nameDropdown.classList.add("hidden");
 
-          fetch('/api/generate-names', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                  name: name,
-                  limit: limit 
-              })
+        // Show the loading indicator
+        loadingIndicator.classList.remove("hidden");
+        resultsContainer.classList.add("hidden");
+        errorContainer.classList.add("hidden");
+
+        fetch("/api/generate-names", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name,
+            limit: limit,
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Error al generar las variantes del nombre.");
+            }
+            return response.json();
           })
-          .then(response => {
-              if (!response.ok) {
-                  throw new Error('Error al generar las variantes del nombre.');
-              }
-              return response.json();
+          .then((data) => {
+            // Ensure data.candidates is an array
+            if (!data.candidates || !Array.isArray(data.candidates)) {
+              console.error("Formato de respuesta inesperado:", data);
+              throw new Error("Formato de respuesta inesperado del servidor");
+            }
+
+            // Filter candidates from the API that are not already in the list
+            const newCandidates = data.candidates.filter(
+              (c) => c && !isNameInCandidates(c),
+            );
+            currentCandidates.unshift(...newCandidates);
+            currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
+
+            resultsContainer.classList.remove("hidden");
+            // keep previous results; new generated candidates update dropdown only
+            // Finalizado con éxito: permitir mostrar dropdown y actualizarlo
+            isGenerating = false;
+            updateDropdown(currentCandidates);
           })
-          .then(data => {
-              // Ensure data.candidates is an array
-              if (!data.candidates || !Array.isArray(data.candidates)) {
-                  console.error('Formato de respuesta inesperado:', data);
-                  throw new Error('Formato de respuesta inesperado del servidor');
-              }
-              
-              // Filter candidates from the API that are not already in the list
-              const newCandidates = data.candidates.filter(c => c && !isNameInCandidates(c));
-              currentCandidates.unshift(...newCandidates);
-              currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
-              
-              resultsContainer.classList.remove('hidden');
-              // keep previous results; new generated candidates update dropdown only
-              // Finalizado con éxito: permitir mostrar dropdown y actualizarlo
-              isGenerating = false;
-              updateDropdown(currentCandidates);
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              showError('Error al generar las variantes del nombre. Por favor, intente nuevamente.');
+          .catch((error) => {
+            console.error("Error:", error);
+            showError(
+              "Error al generar las variantes del nombre. Por favor, intente nuevamente.",
+            );
           })
           .finally(() => {
-              loadingIndicator.classList.add('hidden');
-              // Aseguramos que el estado no quede bloqueado
-              isGenerating = false;
+            loadingIndicator.classList.add("hidden");
+            // Aseguramos que el estado no quede bloqueado
+            isGenerating = false;
           });
       });
     });
@@ -793,5 +864,5 @@
     // TODO: Consider the case where a person has more than one name
     // TODO: Analyze the situation of dynamically creating additional inputs for additional names
     // TODO: Analyze the situation of generating alternatives for each individual name individually
-    </script>
+  </script>
 </html>
