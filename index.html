@@ -401,16 +401,19 @@
 
           let html = "";
 
-          if (response.status === 404) {
-            html = `
-                <div class="text-center py-6">
-                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
-                    <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
-                </div>`;
-          } else if (response.ok) {
+      if (response.status === 404) {
+      html = `
+        <div class="text-center py-6">
+          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
+          <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
+        </div>`;
+      // move the pending entry to the end of the container so empty sources appear last
+      const listContainer = ensureResultsListContainer();
+      listContainer.appendChild(pending.entry);
+      } else if (response.ok) {
             const data = await response.json();
             html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
@@ -446,6 +449,9 @@
                       <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
                       <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                   </div>`;
+                // move the pending entry to the end for no-data
+                const listContainer = ensureResultsListContainer();
+                listContainer.appendChild(pending.entry);
               }
             }
           } else {
@@ -592,17 +598,20 @@
 
           let html = "";
 
-          if (response.status === 404) {
-            // Show message when no data is found (404)
-            html = `
-                <div class="text-center py-6">
-                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
-                    <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
-                </div>`;
-          } else if (response.ok) {
+      if (response.status === 404) {
+      // Show message when no data is found (404)
+      html = `
+        <div class="text-center py-6">
+          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
+          <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
+        </div>`;
+      // move pending entry to end when no results
+      const listContainer = ensureResultsListContainer();
+      listContainer.appendChild(pending.entry);
+      } else if (response.ok) {
             const data = await response.json();
             html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
@@ -639,6 +648,9 @@
                       <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
                       <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                   </div>`;
+                // move pending entry to end when response contains no useful fields
+                const listContainer = ensureResultsListContainer();
+                listContainer.appendChild(pending.entry);
               }
             }
           } else {
@@ -694,17 +706,20 @@
 
           let html = "";
 
-          if (response.status === 404) {
-            // Show message when no data is found (404)
-            html = `
-                <div class="text-center py-6">
-                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
-                    <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
-                </div>`;
-          } else if (response.ok) {
+      if (response.status === 404) {
+      // Show message when no data is found (404)
+      html = `
+        <div class="text-center py-6">
+          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
+          <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
+        </div>`;
+      // move pending entry to end when no results
+      const listContainer = ensureResultsListContainer();
+      listContainer.appendChild(pending.entry);
+      } else if (response.ok) {
             const data = await response.json();
             html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
@@ -739,11 +754,14 @@
                 html = `
                   <div class="text-center py-6">
                       <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12 a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
                       <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                   </div>`;
+                // move the pending entry to the end for no-data
+                const listContainer = ensureResultsListContainer();
+                listContainer.appendChild(pending.entry);
               }
             }
           } else {
