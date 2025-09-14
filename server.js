@@ -445,6 +445,123 @@ app.post('/api/scrape-data-mock', (req, res) => {
     res.json(data);
 });
 
+// Endpoint to scrape data from DNI Peru website. https://dniperu.com/buscar-dni-por-nombres-y-apellidos/
+/**
+ * Endpoint to scrape data from DNI Peru website.
+ * @method POST
+ * @path /api/scrape-data-dni-peru
+ * @body {Object} body - The request body.
+ * @bodyparam {string} name - The person's name.
+ * @bodyparam {string} fatherLastName - The father's last name.
+ * @bodyparam {string} motherLastName - The mother's last name.
+ * @response {Object} result - The result of the scrapping.
+ * @response {boolean} result.success - True if the scrapping was successful.
+ * @response {number} result.count - The number of results found.
+ * @response {Array<Object>} result.data - The scraped data.
+ */
+
+app.post('/api/scrape-data-dni-peru', async (req, res) => {
+    const { name, fatherLastName, motherLastName } = req.body;
+    const result = await scrapeDataFromDniPeru(name, fatherLastName, motherLastName);
+    if (!result.success) {
+        return res.status(404).json({ error: result.error });
+    }
+    res.json(result.data);
+});
+
+async function scrapeDataFromDniPeru(name, fatherLastName, motherLastName) {
+    let browser;
+    try {
+        // Validaciones
+        if (!name || !fatherLastName || !motherLastName) {
+            return {
+                success: false,
+                error: 'Name, fatherLastName and motherLastName are required'
+            };
+        }
+
+        browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+        const page = await browser.newPage();
+
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+
+        await page.goto('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
+            waitUntil: 'networkidle2',
+            timeout: 30000
+        });
+
+        // Extraer el nonce del script de la página
+        const nonce = await page.evaluate(() => {
+            const scriptElement = document.getElementById('consultas-dni-js-extra');
+            if (scriptElement) {
+                const scriptContent = scriptElement.textContent;
+                const match = /"nonce":"(.*?)"/.exec(scriptContent);
+                return match ? match[1] : null;
+            }
+            return null;
+        });
+
+        if (!nonce) {
+            return {
+                success: false,
+                error: 'No se pudo obtener el nonce de seguridad. El sitio puede haber cambiado.'
+            };
+        }
+        
+        // Simular el envío del formulario usando el nonce obtenido
+        const response = await page.evaluate(async (name, fatherLastName, motherLastName, nonce) => {
+            const formData = new FormData();
+            formData.append('nombres', name);
+            formData.append('apellido_paterno', fatherLastName);
+            formData.append('apellido_materno', motherLastName);
+            formData.append('company', ''); 
+            formData.append('action', 'buscar_dni');
+            formData.append('security', nonce);
+
+            const res = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            return res.json();
+        }, name, fatherLastName, motherLastName, nonce);
+
+        // Procesar la respuesta
+        if (response.success && response.data.resultados.length > 0) {
+            const persona = response.data.resultados[0];
+            const output = {
+                dni: persona.numero,
+                name: persona.nombres,
+                fatherLastName: persona.apellido_paterno,
+                motherLastName: persona.apellido_materno
+            }
+            
+            return {
+                success: true,
+                data: output
+            };
+        } else {
+            return {
+                success: false,
+                error: 'No se encontraron resultados o la solicitud no fue exitosa.'
+            };
+        }
+    } catch (err) {
+        return {
+            success: false,
+            error: 'Error al scrapear dniperu.com',
+            details: err?.message || String(err)
+        };
+    } finally {
+        if (browser) {
+            try { await browser.close(); } catch {}
+        }
+    }
+}
+
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
