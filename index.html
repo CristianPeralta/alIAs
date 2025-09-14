@@ -387,10 +387,8 @@
 
       // Function to handle DNI search
       async function ConsultarDatosPorDni(dni) {
-        // Show loading state
-        // we keep previous results to allow multiple sources to accumulate
-        loadingSearch.classList.remove("hidden");
-        resultsContainer.classList.add("hidden");
+        // Create a per-source pending entry so users see which source is loading
+        const pending = createPendingResultEntry("Minsa");
 
         try {
           const response = await fetch("/api/scrape-data-dni", {
@@ -404,7 +402,6 @@
           let html = "";
 
           if (response.status === 404) {
-            // Show message when no data is found (404)
             html = `
                 <div class="text-center py-6">
                     <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -417,7 +414,6 @@
             const data = await response.json();
             html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
 
-            // Define fields to show
             const fields = [
               { key: "nombres", label: "Nombres" },
               { key: "apellidoPaterno", label: "Apellido Paterno" },
@@ -462,15 +458,15 @@
                     <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                 </div>`;
           }
-          // Append the result entry so multiple sources can be accumulated
-          appendResultEntry(html, "Minsa");
+
+          // Replace pending content with actual html and update header timestamp
+          pending.content.innerHTML = html;
+          pending.header.querySelector('.text-xs') && (pending.header.querySelector('.text-xs').textContent = new Date().toLocaleString());
         } catch (error) {
           console.error("Error:", error);
-          errorMessage.textContent =
-            "Error al consultar el DNI. Por favor, inténtalo de nuevo.";
+          pending.content.innerHTML = `<div class=\"text-center py-4 text-red-600\">Error al consultar el DNI.</div>`;
+          errorMessage.textContent = "Error al consultar el DNI. Por favor, inténtalo de nuevo.";
           errorContainer.classList.remove("hidden");
-        } finally {
-          loadingSearch.classList.add("hidden");
         }
       }
       const fatherLastNameInput = document.getElementById("fatherLastName");
@@ -526,6 +522,36 @@
         resultsContainer.classList.remove("hidden");
       }
 
+      // Create a pending result entry with a per-source loader and return references
+      function createPendingResultEntry(sourceLabel = "Fuente desconocida") {
+        const container = ensureResultsListContainer();
+        const entry = document.createElement("div");
+        entry.className = "result-entry bg-white p-4 rounded-lg shadow border";
+        entry.setAttribute("data-source", sourceLabel);
+
+        const header = document.createElement("div");
+        header.className = "flex items-center justify-between mb-3";
+        header.innerHTML = `
+            <div class="text-sm text-gray-500 font-medium">Fuente: ${sourceLabel}</div>
+            <div class="text-xs text-indigo-600">Buscando datos...</div>
+          `;
+
+        const content = document.createElement("div");
+        content.innerHTML = `
+          <div class="text-center py-6 text-indigo-600 font-medium flex items-center justify-center gap-2">
+            <span class="loading-spinner" aria-hidden="true"></span>
+            Buscando datos en ${sourceLabel}...
+          </div>`;
+
+        entry.appendChild(header);
+        entry.appendChild(content);
+        container.appendChild(entry);
+        // Ensure results container is visible
+        resultsContainer.classList.remove("hidden");
+
+        return { entry, header, content };
+      }
+
       // Function to show errors
       function showError(message) {
         console.error(message);
@@ -547,10 +573,9 @@
           return;
         }
 
-        // Show loading indicator
-        errorContainer.classList.add("hidden");
-        loadingSearch.classList.remove("hidden");
-        resultsContainer.classList.add("hidden");
+  // Create per-source pending entry
+  errorContainer.classList.add("hidden");
+  const pending = createPendingResultEntry("Minsa");
 
         try {
           const response = await fetch("/api/scrape-data", {
@@ -627,16 +652,15 @@
                 </div>`;
           }
 
-          // Append the result entry so multiple sources can be accumulated
-          appendResultEntry(html, "Minsa");
+          // Replace pending entry content with actual HTML and update timestamp
+          pending.content.innerHTML = html;
+          pending.header.querySelector('.text-xs') && (pending.header.querySelector('.text-xs').textContent = new Date().toLocaleString());
         } catch (error) {
           console.error("Error al consultar datos:", error);
-          showError(
-            "Error al cargar los datos. Por favor, inténtalo de nuevo.",
-          );
+          pending.content.innerHTML = `<div class=\"text-center py-4 text-red-600\">Error al cargar los datos.</div>`;
+          showError("Error al cargar los datos. Por favor, inténtalo de nuevo.");
         } finally {
-          // Hide loading indicator
-          loadingSearch.classList.add("hidden");
+          // nothing to hide globally; pending entry was updated above
         }
       }
 
@@ -651,10 +675,9 @@
           return;
         }
 
-        // Show loading indicator
-        errorContainer.classList.add("hidden");
-        loadingSearch.classList.remove("hidden");
-        resultsContainer.classList.add("hidden");
+  // Create per-source pending entry
+  errorContainer.classList.add("hidden");
+  const pending = createPendingResultEntry("DNI Perú");
 
         try {
           const response = await fetch("/api/scrape-data-dni-peru", {
@@ -734,16 +757,15 @@
                 </div>`;
             }
 
-          // Append the result entry so multiple sources can be accumulated
-          appendResultEntry(html, "DNI Perú");
+          // Replace pending entry content with actual HTML and update timestamp
+          pending.content.innerHTML = html;
+          pending.header.querySelector('.text-xs') && (pending.header.querySelector('.text-xs').textContent = new Date().toLocaleString());
         } catch (error) {
           console.error("Error al consultar datos:", error);
-          showError(
-            "Error al cargar los datos. Por favor, inténtalo de nuevo.",
-          );
+          pending.content.innerHTML = `<div class=\"text-center py-4 text-red-600\">Error al cargar los datos.</div>`;
+          showError("Error al cargar los datos. Por favor, inténtalo de nuevo.");
         } finally {
-          // Hide loading indicator
-          loadingSearch.classList.add("hidden");
+          // nothing to hide globally; pending entry was updated above
         }
       }
 
