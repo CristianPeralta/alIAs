@@ -510,10 +510,8 @@ async function scrapeDataFromDniPeru(name, fatherLastName, motherLastName) {
                 error: 'No se pudo obtener el nonce de seguridad. El sitio puede haber cambiado.'
             };
         }
-        
-        // Simular el envío del formulario usando el nonce obtenido
-        const response = await page.evaluate(async (name, fatherLastName, motherLastName, nonce) => {
-            const formData = new FormData();
+
+        const formData = new FormData();
             formData.append('nombres', name);
             formData.append('apellido_paterno', fatherLastName);
             formData.append('apellido_materno', motherLastName);
@@ -521,17 +519,22 @@ async function scrapeDataFromDniPeru(name, fatherLastName, motherLastName) {
             formData.append('action', 'buscar_dni');
             formData.append('security', nonce);
 
-            const res = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
-                method: 'POST',
-                body: formData
-            });
+        const response = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
+            method: 'POST',
+            body: formData
+        });
 
-            return res.json();
-        }, name, fatherLastName, motherLastName, nonce);
-
+        if (!response.ok) {
+            return {
+                success: false,
+                error: `Error en la solicitud: ${response.statusText}`
+            };
+        }
+        
+        const responseData = await response.json();
         // Procesar la respuesta
-        if (response.success && response.data.resultados.length > 0) {
-            const persona = response.data.resultados[0];
+        if (responseData.success && responseData.data.resultados.length > 0) {
+            const persona = responseData.data.resultados[0];
             const output = {
                 dni: persona.numero,
                 name: persona.nombres,
