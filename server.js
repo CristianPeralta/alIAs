@@ -488,21 +488,63 @@ async function scrapeDataFromDniPeru(name, fatherLastName, motherLastName) {
 
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
 
-        await page.goto('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
-            waitUntil: 'networkidle2',
-            timeout: 30000
-        });
+        // Try a lightweight HTML fetch to extract the nonce quickly without launching Puppeteer
+        let nonce = null;
+        try {
+            const resp = await fetch('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'text/html'
+                },
+                // small timeout handled by AbortController below
+            });
 
-        // Extraer el nonce del script de la página
-        const nonce = await page.evaluate(() => {
-            const scriptElement = document.getElementById('consultas-dni-js-extra');
-            if (scriptElement) {
-                const scriptContent = scriptElement.textContent;
-                const match = /"nonce":"(.*?)"/.exec(scriptContent);
-                return match ? match[1] : null;
+            if (resp.ok) {
+                const html = await resp.text();
+                // Try to find the script block with the nonce using regex
+                const match = /"nonce"\s*:\s*"([^"]+)"/.exec(html);
+                if (match && match[1]) {
+                    nonce = match[1];
+                } else {
+                    // As a second attempt, search for a script element id
+                    const idMatch = /id=["']consultas-dni-js-extra["'][^>]*>\s*([^<]+)/.exec(html);
+                    if (idMatch && idMatch[1]) {
+                        const scriptContent = idMatch[1];
+                        const innerMatch = /"nonce"\s*:\s*"([^"]+)"/.exec(scriptContent);
+                        if (innerMatch && innerMatch[1]) nonce = innerMatch[1];
+                    }
+                }
             }
-            return null;
-        });
+        } catch (err) {
+            // If lightweight fetch fails, we'll fallback to Puppeteer below
+            console.warn('Lightweight nonce fetch failed, will fallback to Puppeteer:', err?.message || err);
+        }
+
+        // If we didn't get a nonce from the lightweight fetch, fallback to Puppeteer DOM parsing
+        if (!nonce) {
+            await page.goto('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
+                waitUntil: 'networkidle2',
+                timeout: 30000
+            });
+
+            nonce = await page.evaluate(() => {
+                const scriptElement = document.getElementById('consultas-dni-js-extra');
+                if (scriptElement) {
+                    const scriptContent = scriptElement.textContent || scriptElement.innerText || '';
+                    const match = /"nonce":"(.*?)"/.exec(scriptContent);
+                    return match ? match[1] : null;
+                }
+                // attempt to find nonce in any inline script
+                const scripts = Array.from(document.querySelectorAll('script'));
+                for (const s of scripts) {
+                    const txt = s.textContent || '';
+                    const m = /"nonce"\s*:\s*"([^"]+)"/.exec(txt);
+                    if (m && m[1]) return m[1];
+                }
+                return null;
+            });
+        }
 
         if (!nonce) {
             return {
@@ -511,17 +553,24 @@ async function scrapeDataFromDniPeru(name, fatherLastName, motherLastName) {
             };
         }
 
-        const formData = new FormData();
-            formData.append('nombres', name);
-            formData.append('apellido_paterno', fatherLastName);
-            formData.append('apellido_materno', motherLastName);
-            formData.append('company', ''); 
-            formData.append('action', 'buscar_dni');
-            formData.append('security', nonce);
+        // Build form data and perform AJAX POST
+        const formData = new URLSearchParams();
+        formData.append('nombres', name);
+        formData.append('apellido_paterno', fatherLastName);
+        formData.append('apellido_materno', motherLastName);
+        formData.append('company', '');
+        formData.append('action', 'buscar_dni');
+        formData.append('security', nonce);
 
         const response = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json, text/javascript, */*; q=0.01',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData.toString()
         });
 
         if (!response.ok) {
