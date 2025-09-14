@@ -1,13 +1,10 @@
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
+import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
-
-  let browser;
 
   try {
     const { name, fatherLastName, motherLastName } = req.body || {};
@@ -17,62 +14,67 @@ export default async function handler(req, res) {
       return;
     }
 
-    const executablePath = await chromium.executablePath();
-    browser = await puppeteer.launch({
-      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: chromium.defaultViewport,
-      executablePath,
-      headless: chromium.headless,
-    });
+    // 1) Lightweight GET to extract nonce from HTML without a headless browser
+    let nonce = null;
+    try {
+      const pageResp = await fetch('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36',
+          'Accept': 'text/html'
+        }
+      });
 
-    const page = await browser.newPage();
-
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36');
-
-    await page.goto('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
-      waitUntil: 'networkidle2',
-      timeout: 30000,
-    });
-
-    // Extraer el nonce del script de la página
-    const nonce = await page.evaluate(() => {
-      const scriptElement = document.getElementById('consultas-dni-js-extra');
-      if (scriptElement) {
-        const scriptContent = scriptElement.textContent;
-        const match = /"nonce":"(.*?)"/.exec(scriptContent);
-        return match ? match[1] : null;
+      if (pageResp.ok) {
+        const html = await pageResp.text();
+        const m = /"nonce"\s*:\s*"([^"]+)"/.exec(html);
+        if (m && m[1]) nonce = m[1];
+        else {
+          // Try to find by script id and then extract
+          const idMatch = /id=["']consultas-dni-js-extra["'][^>]*>\s*([^<]+)/.exec(html);
+          if (idMatch && idMatch[1]) {
+            const innerMatch = /"nonce"\s*:\s*"([^"]+)"/.exec(idMatch[1]);
+            if (innerMatch && innerMatch[1]) nonce = innerMatch[1];
+          }
+        }
       }
-      return null;
-    });
+    } catch (err) {
+      console.warn('Lightweight nonce fetch failed; falling back to error response:', err?.message || err);
+    }
 
     if (!nonce) {
-      res.status(500).json({ success: false, error: 'No se pudo obtener el nonce de seguridad. El sitio puede haber cambiado.' });
-      return;
+      // If we can't obtain the nonce without executing JS on the page, return an informative error.
+      return res.status(500).json({ success: false, error: 'No se pudo obtener el nonce de seguridad sin ejecutar JavaScript. La función sin scraping requiere que el nonce esté presente en el HTML.' });
     }
 
-    const formData = new FormData();
-      formData.append('nombres', name);
-      formData.append('apellido_paterno', fatherLastName);
-      formData.append('apellido_materno', motherLastName);
-      formData.append('company', '');
-      formData.append('action', 'buscar_dni');
-      formData.append('security', nonce);
+    // 2) Perform AJAX POST to admin-ajax.php using URL encoded form
+    const body = new URLSearchParams();
+    body.append('nombres', name);
+    body.append('apellido_paterno', fatherLastName);
+    body.append('apellido_materno', motherLastName);
+    body.append('company', '');
+    body.append('action', 'buscar_dni');
+    body.append('security', nonce);
 
-    const res = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
+    const ajaxResp = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
       method: 'POST',
-      body: formData
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: body.toString()
     });
 
-    if (!response.ok) {
-        res.status(404).json({ success: false, error: `Error en la solicitud: ${response.statusText}` });
-        return;
+    if (!ajaxResp.ok) {
+      return res.status(ajaxResp.status).json({ success: false, error: `Error en la solicitud: ${ajaxResp.statusText}` });
     }
 
-    const response = await res.json();
+    const data = await ajaxResp.json();
 
-    // Procesar la respuesta
-    if (response && response.success && response.data && response.data.resultados && response.data.resultados.length > 0) {
-      const persona = response.data.resultados[0];
+    if (data && data.success && data.data && Array.isArray(data.data.resultados) && data.data.resultados.length > 0) {
+      const persona = data.data.resultados[0];
       const output = {
         dni: persona.numero,
         name: persona.nombres,
@@ -80,18 +82,12 @@ export default async function handler(req, res) {
         motherLastName: persona.apellido_materno
       };
 
-      res.status(200).json(output);
-      return;
-    } else {
-      res.status(404).json({ error: 'No se encontraron resultados o la solicitud no fue exitosa.' });
-      return;
+      return res.status(200).json(output);
     }
+
+    return res.status(404).json({ error: 'No se encontraron resultados o la solicitud no fue exitosa.' });
   } catch (err) {
-    console.error('Error in api/scrape-data-dni-peru:', err);
-    res.status(500).json({ success: false, error: 'Error al scrapear dniperu.com', details: err?.message || String(err) });
-  } finally {
-    if (browser) {
-      try { await browser.close(); } catch (_) {}
-    }
+    console.error('Error in api/scrape-data-dni-peru (HTTP-only):', err);
+    return res.status(500).json({ success: false, error: 'Error al consultar dniperu.com', details: err?.message || String(err) });
   }
 }
