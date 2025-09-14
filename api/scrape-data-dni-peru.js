@@ -50,9 +50,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Simular el envío del formulario usando el nonce obtenido
-    const response = await page.evaluate(async (name, fatherLastName, motherLastName, nonce) => {
-      const formData = new FormData();
+    const formData = new FormData();
       formData.append('nombres', name);
       formData.append('apellido_paterno', fatherLastName);
       formData.append('apellido_materno', motherLastName);
@@ -60,13 +58,17 @@ export default async function handler(req, res) {
       formData.append('action', 'buscar_dni');
       formData.append('security', nonce);
 
-      const res = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
-        method: 'POST',
-        body: formData
-      });
+    const res = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
+      method: 'POST',
+      body: formData
+    });
 
-      return res.json();
-    }, name, fatherLastName, motherLastName, nonce);
+    if (!response.ok) {
+        res.status(404).json({ success: false, error: `Error en la solicitud: ${response.statusText}` });
+        return;
+    }
+
+    const response = await res.json();
 
     // Procesar la respuesta
     if (response && response.success && response.data && response.data.resultados && response.data.resultados.length > 0) {
