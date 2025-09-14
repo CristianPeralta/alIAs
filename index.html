@@ -749,6 +749,8 @@
 
       consultButton.addEventListener("click", (e) => {
         e.preventDefault();
+        // clean results list
+        resultsList.innerHTML = "";
         consultarDatos();
         consultarDatosPeru();
       });
