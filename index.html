@@ -401,15 +401,8 @@
 
           let html = "";
 
-      if (response.status === 404) {
-      html = `
-        <div class="text-center py-6">
-          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
-          <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
-        </div>`;
+          if (response.status === 404) {
+            html = buildNoDataHtml("Minsa");
       // move the pending entry to the end of the container so empty sources appear last
       const listContainer = ensureResultsListContainer();
       listContainer.appendChild(pending.entry);
@@ -441,14 +434,7 @@
               });
 
               if (!hasData) {
-                html = `
-                  <div class="text-center py-6">
-                      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
-                      <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
-                  </div>`;
+                html = buildNoDataHtml("Minsa");
                 // move the pending entry to the end for no-data
                 const listContainer = ensureResultsListContainer();
                 listContainer.appendChild(pending.entry);
@@ -558,6 +544,18 @@
         return { entry, header, content };
       }
 
+    // Build a standardized 'no data' HTML message that mentions the source
+    function buildNoDataHtml(sourceLabel) {
+    return `
+      <div class="text-center py-6">
+        <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados en ${sourceLabel}</h3>
+        <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada en ${sourceLabel}.</p>
+      </div>`;
+    }
+
       // Function to show errors
       function showError(message) {
         console.error(message);
@@ -600,14 +598,7 @@
 
       if (response.status === 404) {
       // Show message when no data is found (404)
-      html = `
-        <div class="text-center py-6">
-          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
-          <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
-        </div>`;
+            html = buildNoDataHtml("Minsa");
       // move pending entry to end when no results
       const listContainer = ensureResultsListContainer();
       listContainer.appendChild(pending.entry);
@@ -640,14 +631,7 @@
               });
 
               if (!hasData) {
-                html = `
-                  <div class="text-center py-6">
-                      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
-                      <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
-                  </div>`;
+                html = buildNoDataHtml("Minsa");
                 // move pending entry to end when response contains no useful fields
                 const listContainer = ensureResultsListContainer();
                 listContainer.appendChild(pending.entry);
@@ -706,16 +690,9 @@
 
           let html = "";
 
-      if (response.status === 404) {
-      // Show message when no data is found (404)
-      html = `
-        <div class="text-center py-6">
-          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 class="mt-2 text-lg font-medium text-gray-900">No se encontraron resultados</h3>
-          <p class="mt-1 text-gray-500">No se encontraron datos para la búsqueda realizada.</p>
-        </div>`;
+          if (response.status === 404) {
+            // Show message when no data is found (404)
+            html = buildNoDataHtml("DNI Perú");
       // move pending entry to end when no results
       const listContainer = ensureResultsListContainer();
       listContainer.appendChild(pending.entry);
@@ -751,14 +728,7 @@
               });
 
               if (!hasData) {
-                html = `
-                  <div class="text-center py-6">
-                      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12 a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
-                      <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
-                  </div>`;
+                html = buildNoDataHtml("DNI Perú");
                 // move the pending entry to the end for no-data
                 const listContainer = ensureResultsListContainer();
                 listContainer.appendChild(pending.entry);
