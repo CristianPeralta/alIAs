@@ -275,6 +275,8 @@
         tabName.addEventListener('click', () => {
             tabName.classList.add('border-indigo-500', 'text-indigo-600');
             tabName.classList.remove('text-gray-500');
+            // Clear Results list
+            resultsList.innerHTML = '';
             tabDni.classList.remove('border-indigo-500', 'text-indigo-600');
             tabDni.classList.add('text-gray-500');
             nameSearchTab.classList.remove('hidden');
@@ -289,6 +291,8 @@
         tabDni.addEventListener('click', () => {
             tabDni.classList.add('border-indigo-500', 'text-indigo-600');
             tabDni.classList.remove('text-gray-500');
+            // Clear Results list
+            resultsList.innerHTML = '';
             tabName.classList.remove('border-indigo-500', 'text-indigo-600');
             tabName.classList.add('text-gray-500');
             dniSearchTab.classList.remove('hidden');
@@ -322,7 +326,7 @@
         // Function to handle DNI search
         async function ConsultarDatosPorDni(dni) {
             // Show loading state
-            resultsList.innerHTML = '';
+            // we keep previous results to allow multiple sources to accumulate
             loadingSearch.classList.remove('hidden');
             resultsContainer.classList.add('hidden');
             
@@ -397,8 +401,8 @@
                     <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
                 </div>`;
           }
-          resultsList.innerHTML = html;
-          resultsContainer.classList.remove('hidden');
+          // Append the result entry so multiple sources can be accumulated
+          appendResultEntry(html, 'Minsa');
 
             } catch (error) {
                 console.error('Error:', error);
@@ -425,6 +429,42 @@
       let currentCandidates = [];
       let isGenerating = false; // Estado de carga para /api/generate-names
 
+      // Helper: asegura que exista un contenedor de lista y devuelve la referencia
+      function ensureResultsListContainer() {
+          let container = resultsList.querySelector('.results-list-container');
+          if (!container) {
+              container = document.createElement('div');
+              container.className = 'results-list-container space-y-4';
+              resultsList.appendChild(container);
+          }
+          return container;
+      }
+
+      // Helper: añade un resultado (html) como una entrada en la lista con metadatos de fuente
+      function appendResultEntry(html, sourceLabel = 'Fuente desconocida') {
+          const container = ensureResultsListContainer();
+          const entry = document.createElement('div');
+          entry.className = 'result-entry bg-white p-4 rounded-lg shadow border';
+          entry.setAttribute('data-source', sourceLabel);
+
+          const header = document.createElement('div');
+          header.className = 'flex items-center justify-between mb-3';
+          header.innerHTML = `
+            <div class="text-sm text-gray-500 font-medium">Fuente: ${sourceLabel}</div>
+            <div class="text-xs text-gray-400">${new Date().toLocaleString()}</div>
+          `;
+
+          const content = document.createElement('div');
+          content.innerHTML = html;
+
+          entry.appendChild(header);
+          entry.appendChild(content);
+          container.appendChild(entry);
+
+          // Mostrar contenedor de resultados
+          resultsContainer.classList.remove('hidden');
+      }
+
       // Function to show errors
       function showError(message) {
         console.error(message);
@@ -435,22 +475,21 @@
         }, 5000);
       }
 
-      // Function to consult additional data
-      async function consultarDados() {
-        const names = nameInput.value.trim();
-        const fatherLastName = fatherLastNameInput.value.trim();
-        const motherLastName = motherLastNameInput.value.trim();
+                // Function to consult additional data
+            async function consultarDados() {
+                const names = nameInput.value.trim();
+                const fatherLastName = fatherLastNameInput.value.trim();
+                const motherLastName = motherLastNameInput.value.trim();
             
-        if (!names || !fatherLastName || !motherLastName) {
-          showError('Por favor, completa todos los campos');
-            return;
-          }
+                if (!names || !fatherLastName || !motherLastName) {
+                    showError('Por favor, completa todos los campos');
+                        return;
+                    }
             
-        // Show loading indicator and clear previous results
-        errorContainer.classList.add('hidden');
-        loadingSearch.classList.remove('hidden');
-        resultsContainer.classList.add('hidden');
-        resultsList.innerHTML = '';
+                // Show loading indicator
+                errorContainer.classList.add('hidden');
+                loadingSearch.classList.remove('hidden');
+                resultsContainer.classList.add('hidden');
             
         try {
           const response = await fetch('/api/scrape-data', {
@@ -528,9 +567,8 @@
                 </div>`;
           }
             
-          // Update the results container
-          resultsList.innerHTML = html;
-          resultsContainer.classList.remove('hidden');
+          // Append the result entry so multiple sources can be accumulated
+          appendResultEntry(html, 'Minsa');
         }
         catch (error) {
           console.error('Error al consultar datos:', error);
@@ -735,7 +773,7 @@
               currentCandidates = [...new Set(currentCandidates)].slice(0, 10);
               
               resultsContainer.classList.remove('hidden');
-              resultsList.innerHTML = ''; // Clear previous results if any
+              // keep previous results; new generated candidates update dropdown only
               // Finalizado con éxito: permitir mostrar dropdown y actualizarlo
               isGenerating = false;
               updateDropdown(currentCandidates);
