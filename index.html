@@ -389,7 +389,8 @@
         }
 
         // Call the ConsultarDatosPorDni function
-        ConsultarDatosPorDni(dni);
+        // ConsultarDatosPorDni(dni);
+        ConsultarDatosPorDniPeru(dni);
       });
 
       // Function to handle DNI search
@@ -468,6 +469,81 @@
           errorContainer.classList.remove("hidden");
         }
       }
+
+    // Function to handle DNI search
+    async function ConsultarDatosPorDniPeru(dni) {
+        // Create a per-source pending entry so users see which source is loading
+        const pending = createPendingResultEntry("DNI Peru");
+
+        try {
+          const response = await fetch("/api/scrape-data-dni-peru-dni", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ dni }),
+          });
+
+          let html = "";
+
+          if (response.status === 404) {
+            html = buildNoDataHtml("DNI Peru");
+            // move the pending entry to the end of the container so empty sources appear last
+            const listContainer = ensureResultsListContainer();
+            listContainer.appendChild(pending.entry);
+          } else if (response.ok) {
+            const data = await response.json();
+            html = '<div class="space-y-4 p-6 bg-white rounded-lg shadow">';
+
+            const fields = [
+              { key: "names", label: "Nombres" },
+              { key: "fatherLastName", label: "Apellido Paterno" },
+              { key: "motherLastName", label: "Apellido Materno" },
+              { key: "dni", label: "DNI" },
+            ];
+
+            if (data) {
+              let hasData = false;
+              fields.forEach((field) => {
+                if (data[field.key]) {
+                  hasData = true;
+                  html += `
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-sm font-medium text-gray-500">${field.label}:</div>
+                        <div class="col-span-2 text-sm text-gray-900 font-medium">${data[field.key]}</div>
+                    </div>`;
+                }
+              });
+
+              if (!hasData) {
+                html = buildNoDataHtml("DNI Peru");
+                // move the pending entry to the end for no-data
+                const listContainer = ensureResultsListContainer();
+                listContainer.appendChild(pending.entry);
+              }
+            }
+          } else {
+            html = `
+                <div class="text-center py-6">
+                    <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">Sin datos</h3>
+                    <p class="mt-1 text-gray-500">No se encontraron datos para mostrar.</p>
+                </div>`;
+          }
+
+          // Replace pending content with actual html and update header timestamp
+          pending.content.innerHTML = html;
+          pending.header.querySelector('.text-xs') && (pending.header.querySelector('.text-xs').textContent = new Date().toLocaleString());
+        } catch (error) {
+          console.error("Error:", error);
+          pending.content.innerHTML = `<div class=\"text-center py-4 text-red-600\">Error al consultar el DNI.</div>`;
+          errorMessage.textContent = "Error al consultar el DNI. Por favor, inténtalo de nuevo.";
+          errorContainer.classList.remove("hidden");
+        }
+      }
+
       const fatherLastNameInput = document.getElementById("fatherLastName");
       const motherLastNameInput = document.getElementById("motherLastName");
       const nameInput = document.getElementById("nameInput");
@@ -768,7 +844,7 @@
         e.preventDefault();
         // clean results list
         resultsList.innerHTML = "";
-        consultarDatos();
+        // consultarDatos();
         consultarDatosPeru();
       });
 
