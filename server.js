@@ -6,7 +6,7 @@ import fetch from 'node-fetch';
 import puppeteer from 'puppeteer';
 import { Redis } from '@upstash/redis';
 import { replaceEnieToD, replaceDToEnie } from './utils.js';
-import { scrapeDataFromDniPeruDni } from './services/scrape-data-dni-peru-dni.js';
+import { DniPeruScraper } from './services/index.js';
 
 // Recreate __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -463,166 +463,24 @@ app.post('/api/scrape-data-mock', (req, res) => {
 
 app.post('/api/scrape-data-dni-peru', async (req, res) => {
     const { name, fatherLastName, motherLastName } = req.body;
-    const result = await scrapeDataFromDniPeru(name, fatherLastName, motherLastName);
+    const scraper = new DniPeruScraper();
+    const result = await scraper.searchByNames({ name, fatherLastName, motherLastName });
     if (!result.success) {
         return res.status(404).json({ error: result.error });
     }
-    res.json(result.data);
+    return res.json(result.data);
 });
 
 app.post('/api/scrape-data-dni-peru-dni', async (req, res) => {
     const { dni } = req.body;
-    const result = await scrapeDataFromDniPeruDni(dni);
+    const scraper = new DniPeruScraper();
+    const result = await scraper.searchByDni(dni);
     if (!result.success) {
         return res.status(404).json({ error: result.error });
     }
     res.json(result.data);
 });
 
-async function scrapeDataFromDniPeru(name, fatherLastName, motherLastName) {
-    let browser;
-    try {
-        // Validaciones
-        if (!name || !fatherLastName || !motherLastName) {
-            return {
-                success: false,
-                error: 'Name, fatherLastName and motherLastName are required'
-            };
-        }
-
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-        const page = await browser.newPage();
-
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-
-        // Try a lightweight HTML fetch to extract the nonce quickly without launching Puppeteer
-        let nonce = null;
-        try {
-            const resp = await fetch('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
-                method: 'GET',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Accept': 'text/html'
-                },
-                // small timeout handled by AbortController below
-            });
-
-            if (resp.ok) {
-                const html = await resp.text();
-                // Try to find the script block with the nonce using regex
-                const match = /"nonce"\s*:\s*"([^"]+)"/.exec(html);
-                if (match && match[1]) {
-                    nonce = match[1];
-                } else {
-                    // As a second attempt, search for a script element id
-                    const idMatch = /id=["']consultas-dni-js-extra["'][^>]*>\s*([^<]+)/.exec(html);
-                    if (idMatch && idMatch[1]) {
-                        const scriptContent = idMatch[1];
-                        const innerMatch = /"nonce"\s*:\s*"([^"]+)"/.exec(scriptContent);
-                        if (innerMatch && innerMatch[1]) nonce = innerMatch[1];
-                    }
-                }
-            }
-        } catch (err) {
-            // If lightweight fetch fails, we'll fallback to Puppeteer below
-            console.warn('Lightweight nonce fetch failed, will fallback to Puppeteer:', err?.message || err);
-        }
-
-        // If we didn't get a nonce from the lightweight fetch, fallback to Puppeteer DOM parsing
-        if (!nonce) {
-            await page.goto('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
-                waitUntil: 'networkidle2',
-                timeout: 30000
-            });
-
-            nonce = await page.evaluate(() => {
-                const scriptElement = document.getElementById('consultas-dni-js-extra');
-                if (scriptElement) {
-                    const scriptContent = scriptElement.textContent || scriptElement.innerText || '';
-                    const match = /"nonce":"(.*?)"/.exec(scriptContent);
-                    return match ? match[1] : null;
-                }
-                // attempt to find nonce in any inline script
-                const scripts = Array.from(document.querySelectorAll('script'));
-                for (const s of scripts) {
-                    const txt = s.textContent || '';
-                    const m = /"nonce"\s*:\s*"([^"]+)"/.exec(txt);
-                    if (m && m[1]) return m[1];
-                }
-                return null;
-            });
-        }
-
-        if (!nonce) {
-            return {
-                success: false,
-                error: 'No se pudo obtener el nonce de seguridad. El sitio puede haber cambiado.'
-            };
-        }
-
-        // Build form data and perform AJAX POST
-        const formData = new URLSearchParams();
-        formData.append('nombres', name);
-        formData.append('apellido_paterno', fatherLastName);
-        formData.append('apellido_materno', motherLastName);
-        formData.append('company', '');
-        formData.append('action', 'buscar_dni');
-        formData.append('security', nonce);
-
-        const response = await fetch('https://dniperu.com/wp-admin/admin-ajax.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/json, text/javascript, */*; q=0.01',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData.toString()
-        });
-
-        if (!response.ok) {
-            return {
-                success: false,
-                error: `Error en la solicitud: ${response.statusText}`
-            };
-        }
-        
-        const responseData = await response.json();
-        // Procesar la respuesta
-        if (responseData.success && responseData.data.resultados.length > 0) {
-            const persona = responseData.data.resultados[0];
-            const output = {
-                dni: persona.numero,
-                name: persona.nombres,
-                fatherLastName: persona.apellido_paterno,
-                motherLastName: persona.apellido_materno
-            }
-            
-            return {
-                success: true,
-                data: output
-            };
-        } else {
-            return {
-                success: false,
-                error: 'No se encontraron resultados o la solicitud no fue exitosa.'
-            };
-        }
-    } catch (err) {
-        return {
-            success: false,
-            error: 'Error al scrapear dniperu.com',
-            details: err?.message || String(err)
-        };
-    } finally {
-        if (browser) {
-            try { await browser.close(); } catch {}
-        }
-    }
-}
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
