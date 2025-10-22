@@ -167,79 +167,159 @@ export default class DniPeruScraper extends BaseScraper {
     }
 
     async _performSearch({ name, fatherLastName, motherLastName, nonce }) {
-        const formData = new URLSearchParams();
-        formData.append('nombres', name);
-        formData.append('apellido_paterno', fatherLastName);
-        formData.append('apellido_materno', motherLastName);
-        formData.append('company', '');
-        formData.append('action', 'buscar_dni');
-        formData.append('security', nonce);
+        try {
+            const formData = new URLSearchParams();
+            formData.append('nombres', name);
+            formData.append('apellido_paterno', fatherLastName);
+            formData.append('apellido_materno', motherLastName);
+            formData.append('company', '');
+            formData.append('action', 'buscar_dni');
+            formData.append('security', nonce);
 
-        const response = await fetch(`${this.baseUrl}/wp-admin/admin-ajax.php`, {
-            method: 'POST',
-            headers: {
+            const headers = {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/json, text/javascript, */*; q=0.01',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData.toString()
-        });
+                'DNT': '1',
+                'Host': new URL(this.baseUrl).host,
+                'Origin': this.baseUrl,
+                'Pragma': 'no-cache',
+                'Referer': `${this.baseUrl}/`,
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+                'X-Requested-With': 'XMLHttpRequest',
+                'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"'
+            };
 
-        if (!response.ok) {
-            throw new Error(`Error en la solicitud: ${response.statusText}`);
+            const response = await fetch(`${this.baseUrl}/wp-admin/admin-ajax.php`, {
+                method: 'POST',
+                headers: headers,
+                body: formData.toString(),
+                credentials: 'include',
+                referrer: `${this.baseUrl}/`,
+                mode: 'cors'
+            });
+
+            if (!response.ok) {
+                if (response.status === 403) {
+                    const errorText = await response.text();
+                    console.error('Detalles del error 403:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Object.fromEntries(response.headers.entries()),
+                        body: errorText
+                    });
+                    throw new Error(`Acceso denegado (403). Detalles: ${errorText.substring(0, 200)}...`);
+                }
+                throw new Error(`Error en la solicitud: ${response.status} ${response.statusText}`);
+            }
+
+            const responseData = await response.json();
+            
+            if (!responseData.success || !responseData.data?.resultados?.length) {
+                throw new Error('No se encontraron resultados para la búsqueda');
+            }
+
+            const persona = responseData.data.resultados[0];
+            return {
+                dni: persona.numero,
+                name: persona.nombres,
+                fatherLastName: persona.apellido_paterno,
+                motherLastName: persona.apellido_materno
+            };
+        } catch (error) {
+            console.error('Error en _performSearch:', error);
+            throw error; // Re-lanzar el error para que pueda ser manejado por el llamador
         }
-
-        const responseData = await response.json();
-        
-        if (!responseData.success || !responseData.data?.resultados?.length) {
-            throw new Error('No se encontraron resultados para la búsqueda');
-        }
-
-        const persona = responseData.data.resultados[0];
-        return {
-            dni: persona.numero,
-            name: persona.nombres,
-            fatherLastName: persona.apellido_paterno,
-            motherLastName: persona.apellido_materno
-        };
     }
 
     async _performDniSearch({ dni, nonce }) {
-        const formData = new URLSearchParams();
-        formData.append('dni4', dni);
-        formData.append('company', '');
-        formData.append('action', 'buscar_nombres');
-        formData.append('security', nonce);
+        try {
+            const formData = new URLSearchParams();
+            formData.append('dni4', dni);
+            formData.append('company', '');
+            formData.append('action', 'buscar_nombres');
+            formData.append('security', nonce);
 
-        const response = await fetch(`${this.baseUrl}/wp-admin/admin-ajax.php`, {
-            method: 'POST',
-            headers: {
+            const headers = {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
                 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/json, text/javascript, */*; q=0.01',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData.toString()
-        });
+                'DNT': '1',
+                'Host': new URL(this.baseUrl).host,
+                'Origin': this.baseUrl,
+                'Pragma': 'no-cache',
+                'Referer': `${this.baseUrl}/`,
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+                'X-Requested-With': 'XMLHttpRequest',
+                'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"'
+            };
 
-        if (!response.ok) {
-            throw new Error(`Error en la solicitud: ${response.statusText}`);
-        }
+            const response = await fetch(`${this.baseUrl}/wp-admin/admin-ajax.php`, {
+                method: 'POST',
+                headers: headers,
+                body: formData.toString(),
+                credentials: 'include',
+                referrer: `${this.baseUrl}/`,
+                mode: 'cors'
+            });
 
-        const responseData = await response.json();
-        
-        if (!responseData.success || !responseData.data?.message?.length) {
-            throw new Error('No se encontraron resultados para el DNI proporcionado');
+            if (!response.ok) {
+                if (response.status === 403) {
+                    const errorText = await response.text();
+                    console.error('Detalles del error 403 en _performDniSearch:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: Object.fromEntries(response.headers.entries()),
+                        body: errorText
+                    });
+                    throw new Error(`Acceso denegado (403). Detalles: ${errorText.substring(0, 200)}...`);
+                }
+                throw new Error(`Error en la solicitud: ${response.status} ${response.statusText}`);
+            }
+
+            const responseData = await response.json();
+            
+            if (!responseData.success || !responseData.data?.message?.length) {
+                throw new Error('No se encontraron resultados para el DNI proporcionado');
+            }
+
+            const result = responseData.data.message;
+            const dniMatch = result.match(/Número de DNI: (\d+)/);
+            const namesMatch = result.match(/Nombres: (.+)/);
+            const fatherLastNameMatch = result.match(/Apellido Paterno: (.+)/);
+            const motherLastNameMatch = result.match(/Apellido Materno: (.+)/);
+            const verificationCodeMatch = result.match(/Código de Verificación: (\d+)/);
+            
+            if (!dniMatch || !namesMatch || !fatherLastNameMatch || !motherLastNameMatch) {
+                throw new Error('Formato de respuesta inesperado del servidor');
+            }
+
+            return {
+                dni: dniMatch[1],
+                names: namesMatch[1],
+                fatherLastName: fatherLastNameMatch[1],
+                motherLastName: motherLastNameMatch[1],
+                verificationCode: verificationCodeMatch ? verificationCodeMatch[1] : null
+            };
+        } catch (error) {
+            console.error('Error en _performDniSearch:', error);
+            throw error; // Re-lanzar el error para que pueda ser manejado por el llamador
         }
-        const result = responseData.data.message;
-        const persona = {
-          dni: result.match(/N\u00famero de DNI: (\d+)/)[1],
-          names: result.match(/Nombres: (.+)/)[1],
-          fatherLastName: result.match(/Apellido Paterno: (.+)/)[1],
-          motherLastName: result.match(/Apellido Materno: (.+)/)[1],
-          verificationCode: result.match(/C\u00f3digo de Verificaci\u00f3n: (\d+)/)[1],
-        };
-        return persona;
     }
 }
