@@ -54,6 +54,8 @@ export default class DniPeruScraper extends BaseScraper {
 
             // Obtener nonce de seguridad
             const nonce = await this._getSecurityNonce('name');
+
+            console.log('Nonce obtenido:', nonce);
             
             if (!nonce) {
                 throw new Error('No se pudo obtener el nonce de seguridad');
@@ -66,6 +68,8 @@ export default class DniPeruScraper extends BaseScraper {
                 motherLastName,
                 nonce
             });
+
+            console.log('Resultado de la búsqueda:', result);
 
             return {
                 success: true,
