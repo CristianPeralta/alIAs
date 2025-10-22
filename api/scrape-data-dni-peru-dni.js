@@ -1,4 +1,6 @@
-import DniPeruScraper from '../services/dni-peru-scraper.js';
+import fetch from 'node-fetch';
+
+const API_URL = process.env.API_URL || 'http://159.54.139.34:3000';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,33 +13,26 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'DNI is required' });
   }
 
-  const scraper = new DniPeruScraper();
-  
   try {
-    const result = await scraper.searchByDni(dni);
+    const response = await fetch(`${API_URL}/api/scrape-data-dni-peru-dni`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ dni })
+    });
+
+    const data = await response.json();
     
-    if (result.success) {
-      return res.status(200).json(result);
-    } else {
-      return res.status(400).json({
-        success: false,
-        error: result.error || 'Error en la búsqueda',
-        details: result.details
-      });
-    }
+    // Forward the status code and response from the API
+    return res.status(response.status).json(data);
+    
   } catch (error) {
-    console.error('Error en la búsqueda por DNI:', error);
+    console.error('Error forwarding request to API server:', error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Error interno del servidor',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: 'Error al conectar con el servidor de API',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
-  } finally {
-    // Asegurarse de que el scraper se cierre correctamente
-    try {
-      await scraper.close();
-    } catch (e) {
-      console.error('Error al cerrar el scraper:', e);
-    }
   }
 }
