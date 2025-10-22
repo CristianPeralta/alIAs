@@ -3,37 +3,108 @@ import fetch from 'node-fetch';
 // Helper function for delays between retries
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Function to perform fetch with retry logic
+// Function to perform fetch with retry and Cloudflare challenge handling
 const fetchWithRetry = async (url, options, retries = 3, delayMs = 2000) => {
+    // Enhanced default headers for Cloudflare
+    const defaultHeaders = {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'DNT': '1',
+        'Pragma': 'no-cache',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+        'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"'
+    };
+
     for (let i = 0; i < retries; i++) {
         try {
-            const response = await fetch(url, options);
+            // Merge default headers with provided options
+            const requestOptions = {
+                ...options,
+                headers: {
+                    ...defaultHeaders,
+                    ...(options?.headers || {})
+                },
+                // Add timeout and other fetch options
+                timeout: 10000, // 10 seconds timeout
+                follow: 5, // Follow up to 5 redirects
+                compress: true,
+                // Add cookies if needed
+                credentials: 'include'
+            };
+
+            const response = await fetch(url, requestOptions);
             const text = await response.text();
             
-            // Check for Cloudflare challenge
-            if (text.includes('cf-chl-bypass') || text.includes('challenge-form')) {
+            // Check for Cloudflare challenge with more patterns
+            const cloudflarePatterns = [
+                'cf-chl-bypass',
+                'challenge-form',
+                'cf-browser-verification',
+                'cf-please-wait',
+                'cf_chl_captcha',
+                'cf_clearance',
+                'Just a moment',
+                'Cloudflare Ray ID',
+                'Checking your browser before',
+                'DDoS protection' 
+            ];
+
+            const isCloudflareChallenge = cloudflarePatterns.some(pattern => 
+                text.includes(pattern) || 
+                response.headers.get('server')?.includes('cloudflare')
+            );
+            
+            if (isCloudflareChallenge) {
+                console.warn('Cloudflare challenge detected, attempt:', i + 1);
                 throw new Error('CLOUDFLARE_CHALLENGE');
             }
             
             if (!response.ok) {
-                if (response.status === 403) {
+                console.warn('Request failed with status:', response.status, response.statusText);
+                if (response.status === 403 || response.status === 429) {
                     throw new Error('CLOUDFLARE_FORBIDDEN');
                 }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             try {
-                const data = JSON.parse(text);
+                const data = text ? JSON.parse(text) : {};
                 return { data, response, error: null };
             } catch (e) {
-                throw new Error('Invalid JSON response');
+                console.warn('Failed to parse JSON response:', e.message);
+                return { data: { success: false, message: text }, response, error: null };
             }
         } catch (error) {
-            if (i === retries - 1) throw error;
-            await delay(delayMs * (i + 1));
+            console.warn(`Attempt ${i + 1} failed:`, error.message);
+            if (i === retries - 1) {
+                // On final retry, return a more user-friendly error
+                if (error.message === 'CLOUDFLARE_CHALLENGE' || error.message === 'CLOUDFLARE_FORBIDDEN') {
+                    return {
+                        error: 'CLOUDFLARE_CHALLENGE',
+                        message: 'Cloudflare protection is active. Please try again later or use a different method.'
+                    };
+                }
+                throw error;
+            }
+            // Exponential backoff with jitter
+            const jitter = Math.floor(Math.random() * 1000);
+            await delay(delayMs * Math.pow(2, i) + jitter);
         }
     }
-    throw new Error('Max retries reached');
+    
+    return {
+        error: 'MAX_RETRIES_EXCEEDED',
+        message: 'Maximum number of retries reached. Please try again later.'
+    };
 };
 
 // Function to get headers with nonce
