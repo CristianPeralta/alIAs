@@ -78,12 +78,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // 1) Get nonce with retry logic
-    let nonce = null;
+    // 1) Try to get nonce with retry logic, fallback to default
+    const DEFAULT_NONCE = '3cd427b7b6';
+    let nonce = DEFAULT_NONCE;
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 2; // Reduced retries since we have a fallback
 
-    while (retryCount < maxRetries && !nonce) {
+    while (retryCount < maxRetries) {
       try {
         const pageResp = await fetch('https://dniperu.com/buscar-dni-por-nombres-y-apellidos/', {
           method: 'GET',
@@ -100,51 +101,66 @@ export default async function handler(req, res) {
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'none',
             'Sec-Fetch-User': '?1'
-          }
+          },
+          // Add timeout to prevent hanging
+          timeout: 5000
         });
 
         if (pageResp.ok) {
           const html = await pageResp.text();
+          console.log('HTML Response:', html.substring(0, 500)); // Log first 500 chars for debugging
           
-          // Try to find nonce in the script tag first
-          const scriptRegex = /<script[^>]*id=["']consultas-nombres-js-extra["'][^>]*>([\s\S]*?)<\/script>/i;
-          const scriptMatch = html.match(scriptRegex);
-          
-          if (scriptMatch && scriptMatch[1]) {
-            const nonceMatch = scriptMatch[1].match(/"nonce"\s*:\s*"([^"]+)"/);
-            if (nonceMatch && nonceMatch[1]) {
-              nonce = nonceMatch[1];
+          // Try different patterns to find nonce
+          const patterns = [
+            // Pattern 1: In script tag with specific ID
+            () => {
+              const scriptMatch = html.match(/<script[^>]*id=["']consultas-nombres-js-extra["'][^>]*>([\s\S]*?)<\/script>/i);
+              if (scriptMatch && scriptMatch[1]) {
+                const nonceMatch = scriptMatch[1].match(/"nonce"\s*:\s*"([^"]+)"/);
+                return nonceMatch ? nonceMatch[1] : null;
+              }
+              return null;
+            },
+            // Pattern 2: Global search in HTML
+            () => {
+              const nonceMatch = html.match(/"nonce"\s*:\s*"([^"]+)"/);
+              return nonceMatch ? nonceMatch[1] : null;
+            },
+            // Pattern 3: Look for nonce in meta tags
+            () => {
+              const metaMatch = html.match(/<meta[^>]*name=["']nonce["'][^>]*content=["']([^'"]+)["']/i);
+              return metaMatch ? metaMatch[1] : null;
+            }
+          ];
+
+          // Try each pattern until we find a nonce
+          for (const pattern of patterns) {
+            const foundNonce = pattern();
+            if (foundNonce) {
+              nonce = foundNonce;
+              console.log('Found nonce:', nonce);
               break;
             }
           }
           
-          // If not found, try to find it anywhere in the HTML
-          if (!nonce) {
-            const globalNonceMatch = html.match(/"nonce"\s*:\s*"([^"]+)"/);
-            if (globalNonceMatch && globalNonceMatch[1]) {
-              nonce = globalNonceMatch[1];
-              break;
-            }
+          if (nonce !== DEFAULT_NONCE) {
+            break; // Exit retry loop if we found a nonce
           }
         }
       } catch (err) {
         console.warn(`Error getting nonce (attempt ${retryCount + 1}):`, err.message);
       }
       
-      if (!nonce) {
-        retryCount++;
-        if (retryCount < maxRetries) {
-          await delay(1000 * retryCount); // Wait before retry
-        }
+      retryCount++;
+      if (retryCount < maxRetries) {
+        await delay(1000 * retryCount);
       }
     }
 
-    if (!nonce) {
-      return res.status(500).json({ 
-        success: false, 
-        error: 'No se pudo obtener el token de seguridad. Por favor, inténtelo de nuevo más tarde.'
-      });
-    }
+    console.log('Using nonce:', nonce);
+    
+    // We'll continue with the default nonce even if extraction fails
+    
 
     // 2) Perform DNI search with retry logic
     const formData = new URLSearchParams();
