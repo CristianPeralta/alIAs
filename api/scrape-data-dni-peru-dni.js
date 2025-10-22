@@ -108,28 +108,63 @@ const fetchWithRetry = async (url, options, retries = 3, delayMs = 2000) => {
 };
 
 // Function to get headers with nonce
-const getHeaders = (nonce) => ({
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    'DNT': '1',
-    'Host': 'dniperu.com',
-    'Origin': 'https://dniperu.com',
-    'Pragma': 'no-cache',
-    'Referer': 'https://dniperu.com/',
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'same-origin',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
-    'X-Requested-With': 'XMLHttpRequest',
-    'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"',
-    'Cookie': nonce ? `wordpress_sec_${nonce}` : ''
-});
+const getHeaders = (nonce) => {
+    // Generate a random browser fingerprint
+    const fingerprint = {
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+        platform: 'Win32',
+        languages: ['es-ES', 'es', 'en-US', 'en'],
+        timezone: 'America/Lima',
+        screen: '1920x1080',
+        colorDepth: 24,
+        hardwareConcurrency: 4, // Default value for server-side
+        deviceMemory: 8, // Default value for server-side
+        plugins: [
+            'PDF Viewer',
+            'Chrome PDF Viewer',
+            'Chromium PDF Viewer',
+            'Microsoft Edge PDF Viewer',
+            'WebKit built-in PDF'
+        ]
+    };
+    
+    // Add a random delay to mimic human behavior
+    const randomDelay = Math.floor(Math.random() * 1000) + 500;
+    const timestamp = Date.now();
+
+    return {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': fingerprint.languages.join(','),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'DNT': '1',
+        'Host': 'dniperu.com',
+        'Origin': 'https://dniperu.com',
+        'Pragma': 'no-cache',
+        'Referer': 'https://dniperu.com/buscar-dni-por-nombres-y-apellidos/',
+        'Sec-Ch-Ua': '"Chromium";v="116", "Not)A;Brand";v="24"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': fingerprint.userAgent,
+        'X-Requested-With': 'XMLHttpRequest',
+        'Cookie': nonce ? `wordpress_sec_${nonce};` : '',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-GPC': '1',
+        'TE': 'trailers',
+        'X-Forwarded-For': Array(4).fill(0).map(() => Math.floor(Math.random() * 255) + 1).join('.'),
+        'X-Request-Start': `t=${timestamp}`,
+        'X-Request-ID': `req_${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
+        'X-Debug': 'false',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Requested-By': 'XMLHttpRequest',
+        'X-Requested-By-Web': 'true'
+    };
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
