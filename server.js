@@ -15,15 +15,26 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Environment
+const ENV = process.env.ENV;
+
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+    const status = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        environment: ENV || 'development',
+        uptime: process.uptime()
+    };
+    res.status(200).json(status);
+});
+
 // API Key
 const API_KEY = process.env.API_KEY;
-
-// Environment
-const ENV = process.env.ENV;
 
 // Redis client setup (optional). If Redis isn't available, the app will continue without cache.
 const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS || 60 * 60 * 24 * 7); // default 1 week
