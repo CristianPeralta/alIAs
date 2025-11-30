@@ -1,6 +1,13 @@
 <!doctype html>
 <html lang="es">
   <head>
+    <script>
+      // Redirect to CRISWE_APP_URL if it's defined
+      const crisweUrl = '<%= process.env.CRISWE_APP_URL %>';
+      if (crisweUrl && crisweUrl !== 'undefined') {
+        window.location.href = crisweUrl;
+      }
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.png" />
