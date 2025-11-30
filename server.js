@@ -53,9 +53,13 @@ try {
   console.warn("Upstash Redis client initialization failed. Caching will be disabled.", e?.message || e);
 }
 
-// Serve the main HTML files
+// Root endpoint - redirects to CRISWE_APP_URL
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    const redirectUrl = process.env.CRISWE_APP_URL;
+    if (!redirectUrl) {
+        return res.status(500).send('CRISWE_APP_URL is not configured');
+    }
+    res.redirect(redirectUrl);
 });
 
 app.get('/consult', (req, res) => {
