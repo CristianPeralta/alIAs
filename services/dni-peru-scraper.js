@@ -308,7 +308,7 @@ export default class DniPeruScraper extends BaseScraper {
             }
 
             const result = responseData.data.message;
-            const dniMatch = result.match(/Número de DNI: (\d+)/);
+            const dniMatch = result.match(/Numero de DNI: (\d+)/);
             const namesMatch = result.match(/Nombres: (.+)/);
             const fatherLastNameMatch = result.match(/Apellido Paterno: (.+)/);
             const motherLastNameMatch = result.match(/Apellido Materno: (.+)/);
