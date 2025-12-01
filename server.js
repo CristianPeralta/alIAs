@@ -79,7 +79,7 @@ app.post('/api/generate-names', async (req, res) => {
         if (limit > 20) {
             return res.status(400).json({ error: 'Limit must be less than or equal to 20' });
         }
-        const modelId = 'gemini-2.5-flash-preview-05-20';
+        const modelId = 'gemini-2.5-flash';
         const version = 'v1';
         const normalizedName = String(name).trim().toLowerCase();
         const cacheKey = `names:${modelId}:${version}:${normalizedName}:${limit}`;
