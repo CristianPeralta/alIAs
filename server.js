@@ -55,11 +55,7 @@ try {
 
 // Root endpoint - redirects to CRISWE_APP_URL
 app.get('/', (req, res) => {
-    const redirectUrl = process.env.CRISWE_APP_URL;
-    if (!redirectUrl) {
-        return res.status(500).send('CRISWE_APP_URL is not configured');
-    }
-    res.redirect(redirectUrl);
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/consult', (req, res) => {
