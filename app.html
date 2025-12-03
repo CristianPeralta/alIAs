@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Nombres con IA</title>
+    <link rel="icon" href="/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 600px;
+        }
+        .input-group {
+            display: flex;
+            align-items: center;
+        }
+        .input-group input {
+            flex-grow: 1;
+        }
+        .result-list {
+            list-style: decimal inside;
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 2rem;
+            background-color: #10b981;
+            color: white;
+            border-radius: 9999px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 1000;
+        }
+        .notification.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white p-8 rounded-xl shadow-lg w-full">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Generador de Nombres con IA</h1>
+        <p class="text-gray-600 text-center mb-6">
+            Ingresa un nombre y la IA generará variaciones de escritura, fonética y homónimos comunes.
+        </p>
+        <div class="space-y-4 mb-6">
+            <div class="input-group space-x-2">
+                <input 
+                    id="nameInput" 
+                    type="text" 
+                    placeholder="Ej. Jessica"
+                    class="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <input
+                    id="limitInput"
+                    type="number"
+                    value="10"
+                    min="1"
+                    class="w-24 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                    title="Cantidad de variaciones a generar"
+                />
+            </div>
+            <button 
+                id="generateButton" 
+                class="w-full bg-indigo-600 text-white p-3 rounded-xl font-semibold hover:bg-indigo-700 transition duration-300 shadow-md"
+            >
+                Generar
+            </button>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-center text-indigo-600 font-semibold my-4">
+            Generando variaciones con IA...
+        </div>
+        
+        <div id="errorContainer" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p id="errorMessage" class="text-sm"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="resultsContainer" class="hidden">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Variaciones encontradas:</h2>
+            <ol id="resultsList" class="result-list bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <!-- The results will be injected here -->
+            </ol>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+
+    <script>
+        const nameInput = document.getElementById('nameInput');
+        const limitInput = document.getElementById('limitInput');
+        const generateButton = document.getElementById('generateButton');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsList = document.getElementById('resultsList');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const notification = document.getElementById('notification');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function showError(message) {
+            console.error(message);
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+            setTimeout(() => {
+                errorContainer.classList.add('hidden');
+            }, 5000);
+        }
+
+        generateButton.addEventListener('click', async () => {
+            const name = nameInput.value.trim();
+            const limit = parseInt(limitInput.value, 10);
+
+            if (!name) {
+                showError('Por favor ingresa un nombre');
+                resultsContainer.classList.add('hidden');
+                return;
+            }
+            
+            if (isNaN(limit) || limit < 1) {
+                showError('El número de variaciones debe ser mayor a 0');
+                resultsContainer.classList.add('hidden');
+                return;
+            }
+
+            resultsContainer.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+
+            const systemPrompt = "Eres un experto en onomástica, con un profundo conocimiento de nombres en Latinoamérica. Tu tarea es generar variaciones de nombres de persona que suenen lo más similar posible al nombre dado, priorizando la fonética y la ortografía común de la región. Evita las abreviaciones, acortamientos o nombres que, aunque relacionados, no compartan la misma pronunciación exacta (por ejemplo, para 'Cristian' evita 'Cris' y para 'Leonidas' evita 'León' o 'Leonardo'). La lista debe estar ordenada de las variaciones más comunes a las menos comunes y debe ser un arreglo de cadenas de texto en formato JSON. Considera los patrones como 'Yesica', 'Jessica', 'Jesika', 'Jezica', etc.";
+            const userQuery = `Genera una lista de ${limit} variaciones de nombres que suenen o se escriban de manera similar a "${name}".`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "STRING"
+                        }
+                    }
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/generate-names', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, limit })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Error en la API (${response.status}): ${errorText || response.statusText}`);
+                }
+
+                const result = await response.json();
+                const variations = result.candidates;
+                
+                if (variations) {
+                    resultsList.innerHTML = '';
+                    variations.forEach(item => {
+                        const capitalizedItem = item.charAt(0).toUpperCase() + item.slice(1);
+                        
+                        const listItem = document.createElement('li');
+                        listItem.classList.add('flex', 'justify-between', 'items-center', 'mb-1', 'text-gray-800');
+
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = capitalizedItem;
+
+                        const saluteButton = document.createElement('button');
+                        saluteButton.textContent = 'Saludar!';
+                        saluteButton.classList.add('bg-green-500', 'text-white', 'px-3', 'py-1', 'rounded-full', 'text-sm', 'hover:bg-green-600', 'transition', 'duration-300');
+
+                        saluteButton.addEventListener('click', () => {
+                            showNotification(`¡Hola ${capitalizedItem} cómo estás?`);
+                        });
+
+                        listItem.appendChild(nameSpan);
+                        listItem.appendChild(saluteButton);
+                        resultsList.appendChild(listItem);
+                    });
+                    resultsContainer.classList.remove('hidden');
+                } else {
+                    const errorMsg = "No se encontraron resultados válidos en la respuesta de la API.";
+                    showError(errorMsg);
+                    resultsContainer.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                const errorMsg = `Error al generar variaciones: ${error.message}`;
+                showError(errorMsg);
+                resultsList.innerHTML = '';
+                resultsContainer.classList.add('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
