@@ -22,6 +22,12 @@ const ENV = process.env.ENV;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Favicon route
+app.get('/favicon.png', (req, res) => {
+    console.log('Serving favicon.png');
+    res.sendFile(path.join(__dirname, 'public', 'favicon.png'));
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
     const status = {
