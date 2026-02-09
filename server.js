@@ -69,7 +69,15 @@ app.get('/consult', (req, res) => {
 });
 
 // API endpoint to handle name variations
+// TEMPORALMENTE EN MANTENIMIENTO - NO BORRAR CÓDIGO
 app.post('/api/generate-names', async (req, res) => {
+    // Respuesta de mantenimiento temporal
+    return res.status(503).json({ 
+        error: 'Servicio temporalmente en mantenimiento',
+        message: 'La funcionalidad de generación de nombres alternativos está temporalmente deshabilitada. Por favor, intente más tarde.'
+    });
+
+    /* CÓDIGO ORIGINAL - COMENTADO TEMPORALMENTE
     try {
         const { name, limit } = req.body;
         
@@ -156,6 +164,7 @@ app.post('/api/generate-names', async (req, res) => {
         console.error('Error in /api/generate-names:', error);
         res.status(500).json({ error: 'Error al procesar la solicitud' });
     }
+    */
 });
 let indexNames = 0;
 // Mock endpoint to generate names
